@@ -12,9 +12,11 @@ elv_focus = trans.elevationFocusMm * 1e-3;      % Elevation Focus [m]
 trans_obj = xdc_focused_array(n_elem, width, height, kerf, elv_focus, ...
                           1, 10, [0 0 0]);
 
-% Sampling and central frecuency
-f0 = trans.frequency * 1e6; % [Hz]
-fs = img_param.f_s;         % [Hz]
+% Sampling frequency and excitation parameters
+fs = img_param.f_s;             % [Hz]
+f0 = tw.Parameters(1) * 1e6;    % [Hz]
+duty = tw.Parameters(2) * 100;  % [%]
+n_cylc = tw.Parameters(3) / 2;  % [cycles]
 
 % Retrieve transducer's impulse response
 IR = trans.IR1wy;
@@ -26,13 +28,17 @@ IR_ip = interp1(t_IR, IR, t_ip, 'linear', 0);
 xdc_impulse(trans_obj, IR_ip)
 
 % Retrieve transducer's input voltage signal
-TW = tw.TriLvlWvfm_Sim;
-t_TW = (0:(length(TW)-1)) / 250e6;
+if n_cylc < 10
+    pulse_v = tw.TriLvlWvfm_Sim';
+else
+    % Create pulse train and polarity
+    t_pulse = 0:1/fs:n_cylc/f0;
+    puls_tr = square(t_pulse * 4 * pi * f0, duty) + 1;
+    pol = square(t_pulse * 2 * pi * f0, 49);
+    pulse_v = -puls_tr .* pol / 2;
+end
 
-% Interpolate voltage signal at sampling frequency
-t_ip = 0:1/fs:2/f0;
-TW_ip = interp1(t_TW, TW, t_ip, 'nearest', 0);
-xdc_excitation(trans_obj, TW_ip);
+xdc_excitation(trans_obj, pulse_v);
 
 % Activate baffle
 xdc_baffle(trans_obj, 1);
