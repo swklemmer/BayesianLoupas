@@ -1,8 +1,14 @@
 % This script provides an environment to simulate B-mode images using angle
 % compunding and non-linear beamforming
 
+cd('../../Vantage-4.7.6/')
+activate;
+cd('../BayesianLoupas/2_SonogramSimulation/')
+addpath('../lib/SonoSim/');
+addpath('../lib/SonoSim/BMS_aux/');
+
+%% Generate Sonograms
 clear all
-addpath('./lib/Auxiliar');
 
 % Specify user defined parameters
 P = struct(...
@@ -73,13 +79,13 @@ for c_t = ct_list
     
         % Save all the structures to a .mat file and run
         filename = 'BMS';
+        cd('../../Vantage-4.7.6/')
         save(['MatFiles/', filename]);
-        tic();
-        VSX;
-        elap_t = toc();
+        tic(); VSX; elap_t = toc();
+        cd('../BayesianLoupas/2_SonogramSimulation/')
 
         % Save results
-        save(sprintf('./BModeData/e%d/ct%4.2f_%d.mat', ...
+        save(sprintf('./results/d%d/ct%4.2f_%d.mat', ...
             P.bmode_dly, c_t, n_i), ...
             'RcvData', 'IData', 'QData', ...
             'img_x', 'img_z', 'BFData', 'elap_t')
@@ -98,7 +104,7 @@ hObject.Value = 1;
 for c_t = flip(ct_list)    
     for n_i = 1:N_exp
         % Load results
-        load(sprintf('./BModeData/e%d/ct%4.2f_%d.mat', ...
+        load(sprintf('./results/d%d/ct%4.2f_%d.mat', ...
             50, c_t, n_i), ...
             'RcvData', 'IData', 'QData', ...
             'img_x', 'img_z', 'BFData', 'elap_t')
