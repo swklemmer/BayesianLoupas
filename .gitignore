@@ -1,8 +1,10 @@
 .DS_Store
+**/.DS_Store
 lib/.DS_Store
 lib/Field_II/
 lib/deprecated/
 1_TransducerCharacterization/results/
+1_TransducerCharacterization/.DS_Store
 2_SonogramSimulation/results/
 3_DisplacementEstimation/results/
 resources/FemData/

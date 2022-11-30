@@ -1,30 +1,23 @@
 addpath('../lib/DispEst/')
+addpath('../lib/SonoSim/BMS_aux/')
 
 %% Testbench parameters
 
+% Transducer (Verasonics L11-5V) and transmit parameters
+load('../resources/L11-5v_Steer.mat', 'PData', 'Trans', 'TX');
+
+% Imaging parameters
 img_param = struct(...
-    'fr_d', 1 ...         % frame rate decimation (1 --> 20 kHz)
+    'fr_n',     40, ...     % input frame number
+    'fr_d',     1, ...      % frame rate decimation (1 --> 20 kHz)
+    'snr',      20, ...     % signal-to-noise-ratio [dB]
+    'z_len',    9, ...      % axial kernel length [wvls]
+    'z_hop',    2, ...      % axial kernel hop    [wvls]
+    'x_len',    2, ...      % late. kernel length [wvls]
+    'x_hop',    1, ...      % late. kernel hop    [wvls]
+    't_len',    3 ...       % temp. kernel length [wvls]
     );
 
-% % Imaging parameters
-% img_param = struct(...
-%     'f_c',      7e6, ...    % [Hz] 
-%     'bw',       0.5, ...    % [%]
-%     't_s',      0, ...      % [s]
-%     'z_max',    80, ...     % axial depth [lmbds]
-%     'K',        0, ...      % number of kernels
-%     'K_len',    3, ...      % kernel length [wvls]
-%     'K_hop',    1, ...      % kernel hop [wvls]
-%     'M',        0, ...      % kernel rf length [smpls]
-%     'M_hop',    0, ...      % kernel rf hop [smpls]
-%     'M_max',    0, ...      % axial depth [smpls]
-%     'N',        3, ...      % ensemble length [frames]
-%     'SNR',      10, ...     % [dB]
-%     'SNR_rho',  0);         % [peak to peak]
-% 
-% img_param.t_s = 1 / (4 * img_param.f_c);
-% img_param.SNR_rho = 10^(img_param.SNR/20);
-% 
 % % Method parameters
 % met_param = struct(...
 %     'lambda',   5e1, ...    % prior weight
@@ -36,31 +29,37 @@ img_param = struct(...
 
 % Load sonograms of different material properties
 %ct_list = 0.25:0.25:3;  % shear wave speed [m/s]
-ct_list = 1.75;
-%N_exp = 20;              % nr. of experiment per sws
-N_exp = 1;
+ct_list = 1;
+N_exp = 1;  % nr. of experiment per sws
 
 for c_t = ct_list
     for n_i = 1:N_exp
 
         % Load results
-        load(sprintf('../2_SonogramSimulation/results/d%d/ct%4.2f_%d.mat', ...
-            50, c_t, n_i), ...
-            'RcvData', 'IData', 'QData', 'img_x', 'img_z')
+        load(sprintf('../resources/BModeData/ct%4.2f_%d.mat', ...
+            c_t, n_i), 'RcvData', 'IData', 'QData', 'img_x', 'img_z')
 
         % Beamform IQ data
-        BFData = beamform_iq(IData{1}, QData{1}, img_param.fr_d);
+        [RF_mas, I_mas, Q_mas] = beamform(img_param, PData, Trans, TX, RcvData{1});
 
-        % Split line into kernels
-%         [rf_data, img_param] = split_windows(img_param, rf_lines);
+        % MISSING: ADD NOISE
 
+        % IF THE CURRENT METHOD DOESN'T WORK, WE CAN TRY TO ARTIFITIALLY
+        % GENERATE RF AND IQ SIGNALS FROM THE FOLLOWING LINE
+        %BFData = beamform_mag(img_param, IData{1}, QData{1});
 
-%         [rf_data, img_param] = split_windows(img_param, rf_lines);
-%         
-%         % Calculate starting solution using Loupas
-%         iq_lines = demoulate_rf(img_param, rf_lines);
-%         u_0 = loupas(img_param, iq_lines);
-%         
+        % Show Sonograms
+%         BFData = RF_mas;
+%         hObject.Value = 1;
+%         BMS_show_beamf(hObject, 0);
+
+        % Split data into kernels
+        [RF_kern, I_kern, Q_kern] = ...
+            split_kernels(img_param, PData, RF_mas, I_mas, Q_mas);
+
+        % Calculate starting solution using Loupas
+        u_0 = loupas_3D(I_kern, Q_kern);
+
 %         % Maximize posterior probability
 %         fun = @(u) -eval_posterior(img_param, met_param, rf_data, 'ack', u);
 %         

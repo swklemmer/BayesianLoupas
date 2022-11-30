@@ -28,7 +28,7 @@ P = struct(...
 
 % Simulate for different material properties
 ct_list = 0.25:0.25:3;  % shear wave speed [m/s]
-N_exp = 20;              % nr. of experiment per sws
+N_exp = 1;              % nr. of experiment per sws
 
 for c_t = ct_list
 
@@ -39,7 +39,8 @@ for c_t = ct_list
     Parameters = BMS_Parameters(P, Trans);
 
     % Define Displacement structure array (simulation only)
-    Disp = BMS_Disp(sprintf('./FemData/u_%.0f.h5', 3e3 * c_t^2), Parameters);
+    Disp = BMS_Disp(sprintf('../resources/FemData/u_%.0f.h5', ...
+        3e3 * c_t^2), Parameters);
     
     for n_i = 1:N_exp
     
@@ -85,8 +86,8 @@ for c_t = ct_list
         cd('../BayesianLoupas/2_SonogramSimulation/')
 
         % Save results
-        save(sprintf('./results/d%d/ct%4.2f_%d.mat', ...
-            P.bmode_dly, c_t, n_i), ...
+        save(sprintf('../resources/TestData/ct%4.2f_%d.mat', ...
+            c_t, n_i), ...
             'RcvData', 'IData', 'QData', ...
             'img_x', 'img_z', 'BFData', 'elap_t')
 
@@ -104,10 +105,8 @@ hObject.Value = 1;
 for c_t = flip(ct_list)    
     for n_i = 1:N_exp
         % Load results
-        load(sprintf('./results/d%d/ct%4.2f_%d.mat', ...
-            50, c_t, n_i), ...
-            'RcvData', 'IData', 'QData', ...
-            'img_x', 'img_z', 'BFData', 'elap_t')
+        load(sprintf('../resources/TestData/ct%4.2f_%d.mat', ...
+            c_t, n_i), 'img_x', 'img_z', 'BFData')
 
         BMS_show_beamf(hObject, 0, c_t);
     end
