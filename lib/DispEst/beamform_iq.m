@@ -1,17 +1,18 @@
 function BFData = beamform_iq(IData, QData, fr_dec)
 
-% Pre-allocate movie data
-BFData = zeros(size(IData, [1, 2, 4]) ./ [1, 1, fr_dec] - [0, 0, -2]);
-BFData = evalin('base', 'BFData;');
-
 % Retrieve process parameters
-bmode_adq = evalin('base', 'P.bmode_adq');
-n_ang = evalin('base', 'P.n_ang');
+bmode_adq = size(IData, 4);
+n_ang = 3;
+
+% Pre-allocate movie data
+n_fr = floor(bmode_adq / fr_dec) - n_ang + 1; % frame number
+BFData = zeros([size(IData, [1, 2]), n_fr]);
 
 % Obtain magnitude of each frame
-s_das = sqrt(squeeze(IData(:, :, 1, :).^2 + QData(:, :, 1, :).^2));
+s_das = sqrt(squeeze(IData(:, :, 1, 1:fr_dec:end).^2 + ...
+                     QData(:, :, 1, 1:fr_dec:end).^2));
 
-for i=1:(bmode_adq-n_ang+1)
+for i=1:n_fr
 
     % Perform beamforming
     s_mas = zeros(size(IData, [1 2]));
@@ -26,14 +27,5 @@ for i=1:(bmode_adq-n_ang+1)
     % Save envelope to ImageBuffer
     BFData(:, :, i) = s_mas;
 end
-
-% Save data to workspace
-assignin('base', 'BFData', BFData);
-
-% Save data to workspace
-assignin('base', 'IData', IData);
-assignin('base', 'QData', QData);
-
-close all
 
 end

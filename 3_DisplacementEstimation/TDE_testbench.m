@@ -1,4 +1,4 @@
-addpath('../lib/SonoSim/BMS_aux')
+addpath('../lib/DispEst/')
 
 %%
 % % Imaging parameters
@@ -33,9 +33,9 @@ img_param = struct(...
 %%
 
 % Load sonograms of different material properties
-ct_list = 0.25:0.25:3;  % shear wave speed [m/s]
+%ct_list = 0.25:0.25:3;  % shear wave speed [m/s]
 ct_list = 1.75;
-N_exp = 20;              % nr. of experiment per sws
+%N_exp = 20;              % nr. of experiment per sws
 N_exp = 1;
 
 for c_t = ct_list
@@ -44,25 +44,15 @@ for c_t = ct_list
         % Load results
         load(sprintf('../2_SonogramSimulation/results/d%d/ct%4.2f_%d.mat', ...
             50, c_t, n_i), ...
-            'RcvData', 'IData', 'QData', ...
-            'img_x', 'img_z', 'BFData', 'elap_t')
+            'RcvData', 'IData', 'QData', 'img_x', 'img_z')
 
-        RcvData = RcvData{1};
-        IData = IData{1};
+        % Beamform IQ data
+        BFData = beamform_iq(IData{1}, QData{1}, img_param.fr_d);
 
-        % Combine RF Data using specified sample rate
-        nr_acq = size(IData, 4);
+        % Split line into kernels
+%         [rf_data, img_param] = split_windows(img_param, rf_lines);
 
-        % Apply beamforming to RFData
-        smpls_fr = size(RcvData, 1) / nr_acq - 128; % samples per frame
 
-        for fr = 1:nr_acq
-            %imagesc(RcvData((1:smpls_fr) + fr * smpls_fr, :))
-            imagesc(IData(:, :, 1, fr))            
-            pause()
-        end
-
-%         % Split line into kernels
 %         [rf_data, img_param] = split_windows(img_param, rf_lines);
 %         
 %         % Calculate starting solution using Loupas
