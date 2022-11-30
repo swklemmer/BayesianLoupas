@@ -1,6 +1,11 @@
 addpath('../lib/DispEst/')
 
-%%
+%% Testbench parameters
+
+img_param = struct(...
+    'fr_d', 1 ...         % frame rate decimation (1 --> 20 kHz)
+    );
+
 % % Imaging parameters
 % img_param = struct(...
 %     'f_c',      7e6, ...    % [Hz] 
@@ -26,9 +31,6 @@ addpath('../lib/DispEst/')
 %     'p',        1.05, ...   % norm deegree
 %     'B',        5);         % vecinity size [kernels]
 
-img_param = struct(...
-    'fr_d', 1 ...         % frame rate decimation (1 --> 20 kHz)
-    );
 
 %%
 

@@ -6,3 +6,5 @@ lib/deprecated/
 2_SonogramSimulation/results/
 3_DisplacementEstimation/results/
 resources/FemData/
+resources/ARFData/
+resources/BModeData/

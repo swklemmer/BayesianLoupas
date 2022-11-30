@@ -15,7 +15,7 @@ z_num = floor((size(BFData, 1) - z_len) / z_hop);
 x_num = floor((size(BFData, 2) - x_len) / x_hop);
 t_num = floor(size(BFData, 3) - t_len);
 
-% Preallocate kernels
+% Save kernels as acollection of index
 kernel_data = zeros(z_num * x_num * t_num, z_len, x_len);
 
 for z = 1:z_num
