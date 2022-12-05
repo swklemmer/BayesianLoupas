@@ -22,12 +22,13 @@ function BMS_show_beamf(hObject, ~, varargin)
 
     % Display all frames within 3 seconds
     t = 1;
-    while hObject.Value
+    n = 0;
+    while n < 6
         pause(3 / size(BFData, 3))
 
         set(img, 'CData', squeeze(BFData(:, :, t)));
         if t < size(BFData, 3); t = t + 1;
-        else; t = 1; end
+        else; t = 1; n = n + 1; end
     end
 
     close(fig)

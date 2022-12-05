@@ -1,5 +1,5 @@
 function compare_estimates(est_x, est_z, u_0, u_hat)
-%COMPARE_ESTIMATES Summary of this function goes here
+%COMPARE_ESTIMATES
 
 fig = figure();
 subplot(1, 2, 1)

@@ -3,18 +3,18 @@ function [est_z, est_x, RF_kern, I_kern, Q_kern] = split_kernels(...
 %SPLIT_KERNELS
 
 % Define kernel size
-z_len = ceil(img_param.z_len / PData.PDelta(3) * 2); % from wvls to smpls
+z_len = ceil(img_param.z_len / PData.PDelta(3) * 2);   % from wvls to smpls
 x_len = ceil(img_param.x_len / PData.PDelta(1));       % from wvls to smpls
 t_len = img_param.t_len;                               % already in smpls
 
 % Define kernel hop
-z_hop = ceil(img_param.z_hop / (PData.PDelta(3) * 2)); % from wvls to smpls
+z_hop = ceil(img_param.z_hop / PData.PDelta(3) * 2);   % from wvls to smpls
 x_hop = ceil(img_param.x_hop / PData.PDelta(1));       % from wvls to smpls
 
 % Define number of kernels
-z_num = floor((size(RFData, 1) - z_len) / z_hop);
-x_num = floor((size(RFData, 2) - x_len) / x_hop);
-t_num = floor(size(RFData, 3) - t_len);
+z_num = floor((size(RFData, 1) - z_len) / z_hop + 1);
+x_num = floor((size(RFData, 2) - x_len) / x_hop + 1);
+t_num = floor(size(RFData, 3) - t_len + 1);
 
 % Preallocate kernels
 RF_kern = zeros(z_num, x_num, t_num, z_len, x_len, t_len);

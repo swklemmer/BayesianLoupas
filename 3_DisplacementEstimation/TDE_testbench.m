@@ -37,9 +37,9 @@ for c_t = 1
         load(sprintf('../resources/BmodeData/ct%4.2f_%d.mat', ...
             c_t, n_i), 'RcvData', 'IData', 'QData', 'img_x', 'img_z')
 
-        % Beamform IQ data [NOISE HAS'NT BEEN ADDED YET]
+        % Beamform IQ data
         [RF_mas, I_mas, Q_mas] = ...
-            beamform(img_param, PData, Trans, TX, RcvData{1});
+            beamform_rf(img_param, PData, Trans, TX, RcvData{1});
 
         % Split data into kernels
         [est_z, est_x, RF_kern, I_kern, Q_kern] = ...
@@ -72,7 +72,7 @@ end
 
 
 %% Animations
-graf = 2;
+graf = 1;
 
 if graf == 1
     % Show Sonograms

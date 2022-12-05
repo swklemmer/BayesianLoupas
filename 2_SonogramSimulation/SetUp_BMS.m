@@ -3,6 +3,7 @@
 
 cd('../../Vantage-4.7.6/')
 activate;
+rmpath('lib/')
 cd('../BayesianLoupas/2_SonogramSimulation/')
 addpath('../lib/SonoSim/');
 addpath('../lib/SonoSim/BMS_aux/');
