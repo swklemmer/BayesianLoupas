@@ -14,12 +14,13 @@ function BMS_show_movie(hObject, ~)
 
     % Display all frames within 3 seconds
     t = 1;
-    while hObject.Value
+    n = 0;
+    while n < 1
         pause(3 / size(MovieData, 3))
 
         set(img, 'CData', squeeze(MovieData(:, :, t)));
         if t < size(MovieData, 3); t = t + 1;
-            else; t = 1; end
+            else; t = 1; n = n + 1; end
     end
 
     close(fig)

@@ -20,7 +20,7 @@ img_param = struct(...
 snr_list = [5:5:30, 60]; % signal-to-noise-ratio [dB]
 ct_list = 0.25:0.75:3; % shear wave speed [m/s]
 
-BM_frames = zeros([PData.Size([1 2]), 3]);
+RF_frames = zeros([PData.Size([1 2]), 3]);
 I_frames = zeros([PData.Size([1 2]), 3]);
 Q_frames = zeros([PData.Size([1 2]), 3]);
 rng(69420)
@@ -50,12 +50,12 @@ for snr = snr_list
         fr = 1 + randi([2, size(RF_mas, 3) - 1]);
     
         % Obtain 3 frames from beamformed data
-        BM_frames = RF_mas(:, :, fr + [-1, 0, 1]);
+        RF_frames = RF_mas(:, :, fr + [-1, 0, 1]);
         I_frames = I_mas(:, :, fr + [-1, 0, 1]);
         Q_frames = Q_mas(:, :, fr + [-1, 0, 1]);
     
         % Identify displacement time t corresponding to current frame fr
-        t = min(1 + fr * fr2t, length(rea_t) - 1);
+        t = min(1 + (fr - 1) * fr2t, length(rea_t) - 1);
         t_0 = floor(t);
         
         % Interpolate consecutive frames in time dimention
@@ -69,8 +69,8 @@ for snr = snr_list
     
         % Save beamformed frame and true displacement
         save(sprintf('../resources/TrainData/snr%d/ct%4.2f.mat', ...
-        img_param.snr, c_t), ...
-        'fr', 'BM_frames', 'I_frames', 'Q_frames', 'u_rea', 'rea_x', 'rea_z')
+        img_param.snr, c_t), 'fr', 'RF_frames', 'I_frames', 'Q_frames', ...
+        'u_rea', 'rea_x', 'rea_z')
 
         % Show displacement and center bmode frame
         if graf

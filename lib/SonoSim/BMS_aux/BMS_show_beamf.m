@@ -23,7 +23,7 @@ function BMS_show_beamf(hObject, ~, varargin)
     % Display all frames within 3 seconds
     t = 1;
     n = 0;
-    while n < 6
+    while n < 5
         pause(3 / size(BFData, 3))
 
         set(img, 'CData', squeeze(BFData(:, :, t)));
