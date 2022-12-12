@@ -16,7 +16,7 @@ P = struct(...
     'startDepth',   25, ...     % acq. start depth [wvls]
     'endDepth',     75, ...     % acq. end depth [wvls]
     'latDist',      30, ...     % acq. lateral span [wvls]
-    'bmode_dly',    50, ...    % delay between b-mode images [usec] (20kHz)
+    'bmode_dly',    50, ...     % delay between b-mode images [usec] (20kHz)
     'bmode_adq',    2e3 / 50, ... % b-mode acq. number
     'hv',           1.6, ...    % transmition bipolar voltage
     'n_ang',        1, ...      % nr. of steering angles
@@ -28,8 +28,11 @@ P = struct(...
     );
 
 % Simulate for different material properties
-ct_list = 0.5:0.25:3;  % shear wave speed [m/s]
-N_exp = 1;              % nr. of experiment per sws
+ct_list = 0.25:0.25:3;  % shear wave speed [m/s]
+N_exp = 3:10;              % nr. of experiment per sws
+
+ct_list = 0.25;  % shear wave speed [m/s]
+N_exp = 11;              % nr. of experiment per sws
 
 for c_t = ct_list
 
@@ -43,7 +46,7 @@ for c_t = ct_list
     Disp = BMS_Disp(sprintf('../resources/FemData/u_%.0f.h5', ...
         3e3 * c_t^2), Parameters);
     
-    for n_i = 1:N_exp
+    for n_i = N_exp
     
         clearvars -except c_t ct_list n_i N_exp P Trans Parameters Disp
         clear functions

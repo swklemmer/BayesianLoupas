@@ -1,4 +1,5 @@
 addpath('../lib/DispEst/')
+addpath('../lib/SonoSim/')
 addpath('../lib/SonoSim/BMS_aux/')
 graf = 1;
 
@@ -13,90 +14,85 @@ img_param = struct(...
     'fr_n',     40, ...     % input frame number
     'fr_d',     1, ...      % frame rate decimation (1 --> 20 kHz)
     'snr',      60, ...     % signal-to-noise-ratio [dB]
-    'z_len',    15, ...     % axial kernel length [wvls]
-    'z_hop',    5, ...      % axial kernel hop    [wvls]
-    'x_len',    1, ...      % late. kernel length [wvls]
-    'x_hop',    1, ...      % late. kernel hop    [wvls]
-    't_len',    3 ...       % temp. kernel length [wvls]
+    'z_len',    8, ...      % axial kernel length [wvls]
+    'z_hop',    2, ...      % axial kernel hop    [wvls]
+    'x_len',    2, ...      % late. kernel length [wvls]
+    'x_hop',    2, ...      % late. kernel hop    [wvls]
+    't_len',    2 ...       % temp. kernel length [wvls]
     );
 
 % Method parameters
 met_param = struct(...
-    'lambda',   10, ...     % prior weight
-    'p',        2, ...      % norm deegree
-    'vcn_z',    3, ...      % axial vecinity size [kernels]
-    'vcn_x',    3 ...       % late. vecinity size [kernels]
-    );         
+    'alpha',    3, ...     % prior weight
+    'p',        2, ...  % norm deegree
+    'vcn_z',    5, ...      % axial vecinity size [kernels]
+    'vcn_x',    1 ...       % late. vecinity size [kernels]
+    );
 
-%% Optimize parameters
-%param_list = 5 * logspace(-1.5, 0.5, 10);
-param_list = 10;
-train_dir = sprintf('../resources/TrainData/snr%d/', img_param.snr);
+% Optimization parameters
+opt_param = optimoptions('fmincon', ...
+    'Display', 'iter-detailed', ...
+    'MaxFunctionEvaluations', 2e4, ...
+    'MaxIterations', 30, ...
+    'OptimalityTolerance', 5e-4, ...
+    'StepTolerance', 1e-6, ...
+    'InitTrustRegionRadius', sqrt(22 * 15));
+
+%% Calculate errors
+
+%param_list = logspace(0.2, 0.8, 20);
+param_list = 1e3;
+train_dir = sprintf('../resources/TrainData/SPW2/snr%d/', img_param.snr);
 train_files = char(dir(fullfile(train_dir, '*.mat')).name);
 
 % Pre-allocate error metrics
-e_bias = zeros(length(param_list), size(train_files, 1));
-e_var = zeros(length(param_list), size(train_files, 1));
-e_rmse = zeros(length(param_list), size(train_files, 1));
+err = zeros(length(param_list), size(train_files, 1), 3);
 a_gain = zeros(length(param_list), size(train_files, 1));
 
 for i = 1:length(param_list)
-    met_param.lambda = param_list(i);
-    %for j = 1:size(train_files, 1)
-    for j = 4
+    met_param.alpha = param_list(i);
+
+    for j = 1:size(train_files, 1)
+
+        tic();
         % Load training data
         load([train_dir, train_files(j, : )], ...
-            'BM_frames', 'I_frames', 'Q_frames', 'u_rea', 'rea_x', 'rea_z')
+            'RF_frames', 'I_frames', 'Q_frames', 'fr', 'c_t')
     
         % Split data into kernels
         [est_z, est_x, RF_kern, I_kern, Q_kern] = ...
-            split_kernels(img_param, PData, BM_frames, I_frames, Q_frames);
-    
+            split_kernels(img_param, PData, RF_frames, I_frames, Q_frames);
+
         % Calculate starting solution using Loupas
         u_0 = loupas_3D(I_kern, Q_kern);
     
-        % Maximize posterior probability for each frame
-        opts = optimoptions('fmincon', ...
-            'Display', 'iter-detailed', ...
-            'MaxFunctionEvaluations', 2e4, ...
-            'MaxIterations', 3e1, ...
-            'OptimalityTolerance', 1e-4, ...
-            'StepTolerance', 1e-4, ...
-            'TypicalX', u_0);
-    
         % Select kernel corresponding to current frame
-        fun = ...
-            @(u) -eval_posterior_2D(met_param, squeeze(RF_kern), 'ack', u);
+        fun = @(u) -eval_posterior_2D(met_param, RF_kern, 'ack', u);
     
-        % Solve bayesian regression
+        % Maximize posterior probability for each frame
         u_hat = fmincon(fun, u_0, [], [], [], [],...
            -0.5 * ones(size(u_0)),...
-            0.5 * ones(size(u_0)), [], opts);
-    
-        % Interpolate in space dimention
-        [x_grid, z_grid] = meshgrid(est_x * lambda, est_z * lambda);
-        u_tru = interp2(rea_z, rea_x, u_rea, z_grid(:), x_grid(:), ...
-            'linear', 0);
-        u_tru = reshape(u_tru, size(x_grid)) / lambda;
+            0.5 * ones(size(u_0)), [], opt_param);
+
+        % Load true displacement
+        [u_tru, ~]= interp_real_u(est_x, est_z, fr, PData, lambda, c_t);
 
         % Find best gain
-        a_gain(i, j) = norm(u_hat(:) - u_tru(:),  2) / ...
-                 norm(u_hat(:),  2);
+        a_gain(i, j) = norm(u_hat(:) - u_tru(:), 2) / norm(u_hat(:),  2);
     
-        % Calculate error metrics
-        e_bias(i, j) = mean(a_gain(i, j) * u_hat - u_tru, 'all');
-        e_var(i, j) = var(a_gain(i, j) * u_hat - u_tru, [], 'all');
-        e_rmse(i, j) = sqrt(e_var(i, j) + e_bias(i, j)^2);
+        % Calculate error metrics (without gain)
+        err(i, j, :) = error_metrics(u_hat, u_tru, 1);
     
+        fprintf('i = %d | c_t =%5.2f | t =%4.0f\n', i, c_t, toc());
+
         if graf
             % Show estimations versus ground truth
             compare_frame(est_x, est_z, u_0, a_gain(i, j) * u_hat, u_tru)
-            pause()
         end
     end
 end
 
-if ~graf
-save(sprintf('../resources/ErrorMetrics/alpha_%ddB.mat', img_param.snr), ...
-    'e_bias', 'e_var', 'e_rmse','a_gain', 'param_list')
-end
+% if ~graf
+% save(sprintf('../resources/ErrorMetrics/alpha_%ddB.mat', img_param.snr), ...
+%     'err', 'e_var', 'e_rmse','a_gain', 'param_list')
+% end

@@ -1,5 +1,6 @@
-function [u_tru, mean_u]= interp_real_u(est_x, est_z, max_t, lambda, PData, c_t)
-%LOAD_REAL_U
+function [u_true, mean_u]= interp_real_u(est_x, est_z, times, PData, lambda, c_t)
+%LOAD_REAL_U Interpolates FEM inter-frame displacement at given spatial and
+%temporal positions [in wavelengths].
 
 % Load displacement info from .h5 file
 [rea_t, rea_x, ~, rea_z, ~, ~, u_z] = ...
@@ -11,26 +12,33 @@ mean_u = mean(u_z, 'all') / lambda;
 fr2t = 50 * 1e-6 / diff(rea_t([1, 2]));
 
 % Pre-allocate displacement movie data
-[x_grid, z_grid] = meshgrid(est_x * lambda, (est_z - PData.Origin(3))* lambda);
-u_tru = zeros([size(x_grid), max_t]);
+[x_grid, z_grid] = meshgrid(est_x * lambda, ...
+                           (est_z - PData.Origin(3)) * lambda);
+u_true = zeros([size(x_grid), length(times)]);
 
 % For each required frame, perform interpolation
-for fr = 1:max_t
+for i = 1:length(times)
 
     % Identify displacement time t corresponding to current frame fr
-    t = max(min(1 + (fr - 5) * fr2t, length(rea_t) - 1), 1);
-    t_0 = floor(t);
-    
+    t_1 = max(min(1 + (times(i) - 1) * fr2t, length(rea_t) - 1), 1);
+    t_2 = max(min(1 + times(i) * fr2t, length(rea_t) - 1), 1);
+
+    t_1i = floor(t_1);
+    t_2i = floor(t_2);
+    f1 = t_1 - t_1i;
+    f2 = t_2 - t_2i;
+
     % Interpolate consecutive frames in time dimention
-    u_zi = squeeze(u_z(t_0, :, 1, :));
-    u_zf = squeeze(u_z(t_0 + 1, :, 1, :));
+    u_z1i = squeeze(u_z(t_1i, :, 1, :));
+    u_z1f = squeeze(u_z(t_1i + 1, :, 1, :));    
+    u_z2i = squeeze(u_z(t_2i, :, 1, :));
+    u_z2f = squeeze(u_z(t_2i + 1, :, 1, :));
     
-    t_frac = t - t_0;
-    u_rea = (1 - t_frac) * u_zi + t_frac * u_zf;
+    u_intp = (1 - f2) * u_z2i + f2 * u_z2f - (1 - f1) * u_z1i - f1 * u_z1f;
     
     % Interpolate in space dimention
-    u_pts = interp2(rea_z, rea_x, u_rea, z_grid(:), x_grid(:), ...
+    u_pts = interp2(rea_z, rea_x, u_intp, z_grid(:), x_grid(:), ...
         'linear', 0);
-    u_tru(:, :, fr) = reshape(u_pts, size(x_grid)) / lambda;
+    u_true(:, :, i) = reshape(u_pts, size(x_grid)) / lambda;
 end
 end

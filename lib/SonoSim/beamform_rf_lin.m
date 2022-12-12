@@ -1,5 +1,5 @@
 function [RF_comp, IData, QData] = beamform_rf_lin(...
-                                    param, PData, Trans, TX, RcvData)
+                               param, PData, Trans, TX, RcvData, varargin)
 %BEAMFORM_RF Processes the RF acquisitions stored in a single RcvBuffer
 % using linear DAS at different steering angles.
 
@@ -7,19 +7,25 @@ function [RF_comp, IData, QData] = beamform_rf_lin(...
 RcvData = double(RcvData) ./ double(max(RcvData, [], 'all'));
 
 % Retrieve process parameters
-n_ang = 3;                                          % steering angles
+n_ang = param.n_ang;                                % steering angles
 fr_in = param.fr_n;                                 % input frame number
 smpls_fr = size(RcvData, 1) / fr_in - 128;          % samples per frame
-fr_out = floor(fr_in / param.fr_d) - n_ang + 1;     % output frame number
 x_elem = Trans.ElementPos(:, 1);                    % element pos. [wls]
 sigma_n = rms(RcvData, 'all') * db2mag(-param.snr); % noise st. deviation
 
-% Split Data into acquisitions
-RF_acq = zeros(smpls_fr, size(RcvData, 2), fr_in);
+if isempty(varargin)
+    frames = 1:fr_in;
+else
+    frames = varargin{1};
+end
 
-for t = 1:fr_in
+% Split Data into acquisitions
+RF_acq = zeros(smpls_fr, size(RcvData, 2), length(frames));
+
+for t = 1:length(frames)
+
     % Add white noise
-    RF_acq(:, :, t) = RcvData((1:smpls_fr) + (t - 1) * smpls_fr, :) + ...
+    RF_acq(:, :, t) = RcvData((1:smpls_fr) + (frames(t) - 1) * smpls_fr, :) + ...
                       sigma_n * randn(size(RF_acq, [1, 2]));
 end
 
@@ -28,12 +34,12 @@ z_dim = PData.Origin(3) + (0:PData.Size(1) - 1) * PData.PDelta(3);
 x_dim = PData.Origin(1) + (0:PData.Size(2) - 1) * PData.PDelta(1);
 
 % Delay-and-Sum beamforming
-RF_das = zeros(length(z_dim), length(x_dim), fr_in);
+RF_das = zeros(length(z_dim), length(x_dim), size(RF_acq, 3));
 
-for t = 1:fr_in
+for t = 1:length(frames)
 
     % Element transmition delay
-    elem_t = TX(1 + mod(t, n_ang)).Delay; % [wvls]
+    elem_t = TX(2 + mod(frames(t), n_ang)).Delay; % [wvls] OJO CON 2 HARDCODEADO
 
     for z = 1:length(z_dim)
         for x = 1:length(x_dim)
@@ -46,6 +52,7 @@ for t = 1:fr_in
                 % Element dependent echo time (1 wln = 4 smpls)
                 tau = sqrt(z_dim(z)^2 + (x_dim(x) - x_elem(e))^2) * 4;
 
+                % Interpolate in time
                 tau_int = floor(tau_0 + tau);
                 tau_frac = tau_0 + tau - tau_int;
                 
@@ -59,7 +66,7 @@ for t = 1:fr_in
 end
 
 % Apply angle compounding
-RF_comp = movmean(RF_das, 3, 3, 'Endpoints', 'discard');
+RF_comp = movmean(RF_das, n_ang, 3, 'Endpoints', 'discard');
 
 % Demodulate RF signals to I+Q baseband
 RF_demod = RF_comp .* ...

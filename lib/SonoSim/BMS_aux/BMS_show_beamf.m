@@ -9,7 +9,7 @@ function BMS_show_beamf(hObject, ~, varargin)
 
     fig = figure();
     img = imagesc(img_x, img_z, squeeze(BFData(: ,:, 1)), ...
-        [min(BFData, [], 'all'), max(BFData, [], 'all') * 2]);
+        [min(BFData, [], 'all'), max(BFData, [], 'all')]);
     colormap('jet')
     if ~isempty(varargin)
         title(sprintf('Beamformed B-modes with C_t = %4.2f [m/s]', varargin{1}))

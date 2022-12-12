@@ -3,12 +3,12 @@ function [est_z, est_x, RF_kern, I_kern, Q_kern] = split_kernels(...
 %SPLIT_KERNELS
 
 % Define kernel size
-z_len = ceil(img_param.z_len / PData.PDelta(3) * 2);   % from wvls to smpls
+z_len = ceil(img_param.z_len / PData.PDelta(3));   % from wvls to smpls
 x_len = ceil(img_param.x_len / PData.PDelta(1));       % from wvls to smpls
 t_len = img_param.t_len;                               % already in smpls
 
 % Define kernel hop
-z_hop = ceil(img_param.z_hop / PData.PDelta(3) * 2);   % from wvls to smpls
+z_hop = ceil(img_param.z_hop / PData.PDelta(3));   % from wvls to smpls
 x_hop = ceil(img_param.x_hop / PData.PDelta(1));       % from wvls to smpls
 
 % Define number of kernels
@@ -37,7 +37,7 @@ for z = 1:z_num
 end
 
 % Create estimation dimentions [wvls]
-est_z = ((0:z_num-1) * z_hop + z_len/2) * PData.PDelta(3) / 2;
-est_x = ((0:x_num-1) * x_hop + x_len/2) * PData.PDelta(1);
+est_z = ((0:z_num-1) * z_hop + z_len/2) * PData.PDelta(3) + PData.Origin(3);
+est_x = ((0:x_num-1) * x_hop + x_len/2) * PData.PDelta(1) + PData.Origin(1);
 
 end
