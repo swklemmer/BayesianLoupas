@@ -9,8 +9,7 @@ function f = eval_posterior_2D(met_param, rf_data, alg, u_sol)
 like_val = eval_likelihood_2D(rf_data, alg, u_sol);
 
 % Evaluate prior
-%prior_val = eval_prior_2D(met_param, u_sol);
-prior_val = 0;
+prior_val = eval_prior_2D(met_param, u_sol);
 
 % Accumulate log-probability
 f = sum(like_val + prior_val, 'all');

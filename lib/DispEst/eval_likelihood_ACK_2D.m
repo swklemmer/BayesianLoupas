@@ -16,9 +16,8 @@ p_xu = zeros(size(rf_data, [1 2]));
 
 for z = 1:size(rf_data, 1)
     for x = 1:size(rf_data, 2)
-        % Chose single lateral position
-        %rf_lines = squeeze(sum(rf_data(z, x, :, :, :), 4));
-        rf_lines = squeeze(rf_data(z, x, :, :, 1, :));
+        % Combine paraller RF lines
+        rf_lines = squeeze(sum(rf_data(z, x, :, :, :, :), 5));
 
         % Create Autocorrelation mask [4 smpls per wvl]
         k_u = - u_sol(z, x) * 4;
@@ -29,7 +28,7 @@ for z = 1:size(rf_data, 1)
         gamma = gamma / gamma(M, N)^2;
     
         % Accumulate term-by-term multiplication
-        p_xu(z, x) = gamma(:)' * phi(:); % / size(rf_data, 4);
+        p_xu(z, x) = gamma(:)' * phi(:);
     end
 end
 

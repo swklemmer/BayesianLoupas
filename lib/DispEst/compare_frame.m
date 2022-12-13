@@ -8,7 +8,7 @@ z_lim = [min([min(u_0, [], 'all'), ...
     max(u_hat, [], 'all'), ...
     max(u_frame, [], 'all')])];
 
-fig = figure();
+fig = figure(1);
 fig.Position = [0, 400, 1100, 300];
 subplot(1, 3, 1)
 img1 = imagesc(est_x, est_z, u_0, z_lim);
