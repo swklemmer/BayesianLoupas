@@ -1,6 +1,6 @@
 addpath('../lib/DispEst/')
 addpath('../lib/SonoSim/')
-graf = 0;
+graf = 1;
 
 %% Training parameters
 
@@ -12,7 +12,7 @@ lambda = 1540 / (Trans.frequency * 1e6);
 img_param = struct(...
     'fr_n',     40, ...     % input frame number
     'fr_d',     1, ...      % frame rate decimation (1 --> 20 kHz)
-    'snr',      5, ...     % signal-to-noise-ratio [dB]
+    'snr',      60, ...     % signal-to-noise-ratio [dB]
     'z_len',    8, ...      % axial kernel length [wvls]
     'z_hop',    2, ...      % axial kernel hop    [wvls]
     'x_len',    2, ...      % late. kernel length [wvls]
@@ -22,10 +22,11 @@ img_param = struct(...
 
 % Method parameters
 met_param = struct(...
-    'alpha',    3, ...     % prior weight
+    'alpha',    3, ...      % prior weight
     'p',        1.05, ...      % norm deegree
     'vcn_z',    3, ...      % axial vecinity size [kernels]
-    'vcn_x',    1 ...       % late. vecinity size [kernels]
+    'vcn_x',    1, ...      % late. vecinity size [kernels]
+    'alg',      'ncc' ...   % Likelihood function
     );
 
 % Optimization parameters
@@ -40,7 +41,6 @@ opt_param = optimoptions('fmincon', ...
 %% Calculate errors
 
 param_list = logspace(2.1, 4.5, 18);
-%param_list = [0.25, 0.5, 1:20];
 train_dir = sprintf('../resources/TrainData/SPW2/snr%d/', img_param.snr);
 train_files = char(dir(fullfile(train_dir, '*.mat')).name);
 
@@ -77,10 +77,10 @@ for j = 1:size(train_files, 1)
         met_param.alpha = param_list(i);
 
         % Select kernel corresponding to current frame
-        fun = @(u) -eval_posterior_2D(met_param, RF_kern, 'ack', u);
+        fun = @(u) -eval_posterior_2D(met_param, RF_kern, u);
 
         % Maximize posterior probability for each frame
-        u_hat = fmincon(fun, u_0, [], [], [], [],...
+        u_hat = fmincon(fun, 0 * u_0, [], [], [], [],...
            -0.5 * ones(size(u_0)),...
             0.5 * ones(size(u_0)), [], opt_param);
 
@@ -98,13 +98,13 @@ for j = 1:size(train_files, 1)
         if graf
             % Show estimations versus ground truth
             compare_frame(est_x, est_z, u_0, u_hat, u_tru)
-            pause()
         end
     end
 end
 
 if ~graf
-save(sprintf('../resources/ErrorMetrics/alpha4_%ddB.mat', img_param.snr), ...
+save(sprintf('../resources/ErrorMetrics/%s/alpha1_%ddB.mat', ...
+    met_param.alg, img_param.snr), ...
     'u_est', 'err', 'err_0', 'a_gain', ...
     'param_list', 'img_param', 'met_param', 'opt_param')
 end

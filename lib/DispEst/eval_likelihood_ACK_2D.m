@@ -16,7 +16,7 @@ p_xu = zeros(size(rf_data, [1 2]));
 
 for z = 1:size(rf_data, 1)
     for x = 1:size(rf_data, 2)
-        % Combine paraller RF lines
+        % Combine parallel RF lines
         rf_lines = squeeze(sum(rf_data(z, x, :, :, :, :), 5));
 
         % Create Autocorrelation mask [4 smpls per wvl]

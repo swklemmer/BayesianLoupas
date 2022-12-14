@@ -1,7 +1,7 @@
 function [p_xu, elapsed_t] = likelihood_NCC(...
                 f_c, t_s, N, rf_lines, u_dim, alpha, varargin)
 %LIKELIHOOD_NCC
-% Returns likelihood function using NCC (Normalized Autocorrelation).
+% Returns likelihood function using NCC (Normalized Cross-Correlation).
 % Uses parabolic interpolation to measure likelihood at sumb-sample
 % resolution. When N > 2, the results of various frame pairs are averaged.
 

@@ -11,7 +11,7 @@ lambda = 1540 / (Trans.frequency * 1e6);
 img_param = struct(...
     'fr_n',     40, ...     % input frame number
     'fr_d',     1, ...      % frame rate decimation (1 --> 20 kHz)
-    'snr',      5, ...     % signal-to-noise-ratio [dB]
+    'snr',      60, ...     % signal-to-noise-ratio [dB]
     'z_len',    8, ...      % axial kernel length [wvls]
     'z_hop',    2, ...      % axial kernel hop    [wvls]
     'x_len',    2, ...      % late. kernel length [wvls]
@@ -19,10 +19,19 @@ img_param = struct(...
     't_len',    2 ...       % temp. kernel length [wvls]
     );
 
+% Method parameters
+met_param = struct(...
+    'alpha',    3, ...      % prior weight
+    'p',        1.05, ...      % norm deegree
+    'vcn_z',    3, ...      % axial vecinity size [kernels]
+    'vcn_x',    1, ...      % late. vecinity size [kernels]
+    'alg',      'ncc' ...   % Likelihood function
+    );
+
 %% Show displacement estimates
 
-load(sprintf('../resources/ErrorMetrics/alpha2_%ddB.mat', img_param.snr), ...
-'a_gain', 'u_est')
+load(sprintf('../resources/ErrorMetrics/%s/alpha1_%ddB.mat', ...
+    met_param.alg, img_param.snr), 'a_gain', 'u_est')
 
 train_dir = sprintf('../resources/TrainData/SPW2/snr%d/', img_param.snr);
 train_files = char(dir(fullfile(train_dir, '*.mat')).name);
@@ -50,10 +59,6 @@ for j = 1:size(train_files, 1)-3
     
         % Show frames
         compare_frame(est_x, est_z, u_0, u_hat, u_tru)
-
-%         % Calculate error metrics (without gain)
-%         err(i, j, :) = error_metrics(u_hat, u_tru, 1);
-
         pause()
     end
 end
@@ -62,8 +67,8 @@ end
 %% Show estimation examples
 img_param.snr = 60;
 
-load(sprintf('../resources/ErrorMetrics/alpha1_%ddB.mat', img_param.snr), ...
-'err', 'err_0', 'param_list')
+load(sprintf('../resources/ErrorMetrics/%s/alpha1_%ddB.mat', ...
+    met_param.alg, img_param.snr), 'err', 'err_0', 'param_list')
 
 fig = figure(1);
 fig.Position = [900, 200, 500, 300];
@@ -92,8 +97,8 @@ fig.Position = [900, 800, 400, 700];
 line_color = {'r', 'k', 'b', 'm'};
 
 for i = 1:length(snr_list)
-    load(sprintf('../resources/ErrorMetrics/alpha2_%ddB.mat', snr_list(i)), ...
-    'err', 'err_0', 'param_list')
+    load(sprintf('../resources/ErrorMetrics/%s/alpha1_%ddB.mat', ...
+        met_param.alg, snr_list(i)), 'err', 'err_0', 'param_list')
     
     err_mean = squeeze(mean(err(:, [1:4], :), 2));
 
