@@ -1,5 +1,5 @@
 function [p_xu, elapsed_t] = likelihood_NCC(...
-                f_c, t_s, N, SNR_rho, rf_lines, u_dim, alpha, varargin)
+                f_c, t_s, N, rf_lines, u_dim, alpha, varargin)
 %LIKELIHOOD_NCC
 % Returns likelihood function using NCC (Normalized Autocorrelation).
 % Uses parabolic interpolation to measure likelihood at sumb-sample
@@ -31,9 +31,9 @@ for n = 1:(N-1)
         max_lag, 'normalized');
 
     % Accumulate likelihood functions
-    p_xu = p_xu + ...
-        exp(min(interp1(corr_dim, cross_corr, s_dim, 'spline', 0) * ...
-            10^(SNR_rho/20) / alpha, 700))';
+    p_xu = p_xu + exp(min(...
+        interp1(corr_dim, cross_corr, s_dim, 'spline', 0) / alpha, ...
+        700))';
 end
 
 % Normalize likelihood

@@ -1,5 +1,5 @@
 function [p_xu, elapsed_t] = likelihood_ACK(...
-                f_c, t_s, M, N, SNR_rho, rf_lines, u_dim, alpha, varargin)
+                f_c, t_s, M, N, rf_lines, u_dim, alpha, varargin)
 %LIKELIHOOD_ACK 
 % Returns likelihood function using ACK (AutoCorrelation Kernels).
 % It operates by directly evaluating the power spectrum  for f (fast 
@@ -36,18 +36,14 @@ gamma = gamma / gamma(M, N)^2;
 
 % Calculate likelihood
 p_xu = zeros(length(u_dim), 1);
-%sigma = alpha / 10^(SNR_rho/20);
 
 for u = 1:length(u_dim)
     phi_u = squeeze(phi(u, :, :));
-    p_xu(u) = exp(gamma(:)' * phi_u(:) / alpha) * alpha; ...
-        ...%(1 + 1 / (alpha * (0.8 * (N + M/8) + 0.016*N*M + 2.4)^2));
-        %(1 + 1 / (alpha^2 * (2 * N - 1) * (2 * M - 1))^2);
-
+    p_xu(u) = exp(min(gamma(:)' * phi_u(:) / (alpha * 1e-2), 700));
 end
 
 % Normalize likelihood
-%p_xu = p_xu;
+p_xu = p_xu / sum(p_xu);
 
 % Return elapsed time
 elapsed_t = toc();

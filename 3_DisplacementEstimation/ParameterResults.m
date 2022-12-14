@@ -1,4 +1,5 @@
 addpath('../lib/DispEst/')
+addpath('../lib/SonoSim/')
 
 %% Imaging parameters
 
@@ -87,15 +88,14 @@ legend({'2 m/s', '', '2.5 m/s', '', '3 m/s', ''}, 'FontSize', 12, 'Position', [0
 snr_list = [5, 20, 60];
 
 fig = figure(2);
-fig.Position = [900, 800, 500, 800];
+fig.Position = [900, 800, 400, 700];
 line_color = {'r', 'k', 'b', 'm'};
-metric = 3;
 
 for i = 1:length(snr_list)
     load(sprintf('../resources/ErrorMetrics/alpha2_%ddB.mat', snr_list(i)), ...
     'err', 'err_0', 'param_list')
     
-    err_mean = squeeze(mean(err(:, [3], :), 2));
+    err_mean = squeeze(mean(err(:, [1:4], :), 2));
 
     % Bias
     subplot(3, 1, 1)
@@ -103,10 +103,10 @@ for i = 1:length(snr_list)
     yline(err_0(3, 1), [line_color{i}, '--'])
     hold on
 
-    % Variance
+    % Std.
     subplot(3, 1, 2)
-    semilogx(param_list, err_mean(:, 2), line_color{i})
-    yline(err_0(3, 2), [line_color{i}, '--'])
+    semilogx(param_list, sqrt(err_mean(:, 2)), line_color{i})
+    yline(sqrt(err_0(3, 2)), [line_color{i}, '--'])
     hold on
 
     % RMSE
@@ -123,16 +123,18 @@ hold off
 grid on
 ylabel('Bias [\lambda]', 'FontSize', 12)
 ylim([-4e-3 1e-3])
-xlim([0.2 20])
-legend({'5 dB', '', '20 dB', '', '60 dB', ''}, 'FontSize', 12, 'Position', [0.17 0.84 0.1 0.05])
+%xlim([0.25 20])
+legend({'5 dB', '', '20 dB', '', '60 dB', ''}, 'FontSize', 10, ...
+    'Position', [0.17 0.7 0.1 0.05])
 
 subplot(3, 1, 2)
 hold off
 grid on
-ylabel('Var. [\lambda]', 'FontSize', 12)
-ylim([0 0.15e-3])
-xlim([0.2 20])
-legend({'5 dB', '', '20 dB', '', '60 dB', ''}, 'FontSize', 12, 'Position', [0.17 0.545 0.1 0.05])
+ylabel('St. Dev. [\lambda]', 'FontSize', 12)
+ylim([4e-3 12e-3])
+%xlim([0.25 20])
+legend({'5 dB', '', '20 dB', '', '60 dB', ''}, 'FontSize', 10, ...
+    'Position', [0.17 0.407 0.1 0.05])
 
 subplot(3, 1, 3)
 hold off
@@ -140,5 +142,6 @@ grid on
 ylabel('RMSE [\lambda]', 'FontSize', 12)
 xlabel('Parameter \alpha', 'FontSize', 12)
 ylim([4e-3 12e-3])
-xlim([0.2 20])
-legend({'5 dB', '', '20 dB', '', '60 dB', ''}, 'FontSize', 12, 'Position', [0.17 0.255 0.1 0.05])
+%xlim([0.25 20])
+legend({'5 dB', '', '20 dB', '', '60 dB', ''}, 'FontSize', 10, ...
+    'Position', [0.17 0.115 0.1 0.05])

@@ -1,31 +1,34 @@
 clear all
-addpath('lib/')
+addpath('../lib/SonoSim')
+addpath('../lib/DispEst')
 
 % Experiment info
 alg_list = {'ack', 'ncc'};
 exp_param = 'z_max';
-param_list = 1.5:0.5:9;
+param_list = 2:15;
+
+% Transducer (Verasonics L11-5V) and transmit parameters
+load('../resources/L11-5v_Steer.mat', 'PData', 'Trans', 'TX', 'TW', 'Receive');
+lambda = 1540 / (Trans.frequency * 1e6);
 
 % Imaging parameters
 img_param = struct(...
-    'f_c',      7e6, ...    % [Hz] 
-    'bw',       0.5, ...    % [%]
-    't_s',      0, ...      % [s]
-    'z_max',    5, ...     % [lmbds]
-    'M',        0, ...      % [number of samples]
-    'N',        3, ...      % [ensemble length]
-    'SNR',      10, ...     % [dB]
-    'SNR_rho',  1);         % [peak to peak]
+    'f_c',      Trans.frequency * 1e6, ...      % [Hz] 
+    'bw',       diff(Trans.Bandwidth) / Trans.frequency, ...    % [%]
+    't_s',      1e-6 / Receive(1).decimSampleRate, ...          % [s]
+    'z_max',    8, ...                          % [lmbds]
+    'M',        0, ...                          % [number of samples]
+    'N',        3, ...                          % [ensemble length]
+    'SNR',      20 ...                          % [dB]
+    );
 
-img_param.t_s = 1 / (4 * img_param.f_c);
 img_param.M = ceil(img_param.z_max / (img_param.f_c * img_param.t_s));
-img_param.SNR_rho = 10^(img_param.SNR/20);
 
 % Method parameters
 met_param = struct(...
     'u_dim', -0.5:0.001:0.5, ... % [lmbds]
-    'ack_a', 7e-3, ...           % [distribution width]
-    'ncc_a', 7e-3);              % [distribution width]
+    'ack_a', 4.6e-3, ...           % [distribution width]
+    'ncc_a', 1.8e-3);              % [distribution width]
 
 % Simulation parameters
 rng(420)
@@ -60,11 +63,12 @@ for p = 1:length(param_list)
                 img_param, met_param, alg_list{alg}, rf_lines);
 
             % Integrate probability over +- lambda/100
-            eval_q(p, alg, n) = evaluate_likelihood(...
+            eval_q(p, alg, n) = likelihood_quality(...
                 p_xu, met_param.u_dim, u_true(n), 1/100);
         
             % Save processing time
             eval_t(p, alg, n) = elapsed_t;
+
         end
 
         % Process results
@@ -76,5 +80,5 @@ for p = 1:length(param_list)
 end
 
 % Save results
-save(sprintf('QualityResults/%s.mat', exp_param),...
+save(sprintf('results/%s_%ddB_3.mat', exp_param, img_param.SNR),...
     'res_q', 'res_t', 'param_list', 'alg_list', 'img_param');
