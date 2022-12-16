@@ -62,6 +62,7 @@ if ~isempty(varargin{1})
     ylim([0, max(p_xu, [], 'all')])
     title('ACK: Likelihood')
     grid on
+    hold on
 
     fig = figure(7);
     fig.Position = [900, 150, 300, 200];

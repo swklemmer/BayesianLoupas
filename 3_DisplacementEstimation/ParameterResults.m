@@ -30,8 +30,8 @@ met_param = struct(...
 
 %% Show displacement estimates
 
-load(sprintf('../resources/ErrorMetrics/%s/alpha1_%ddB.mat', ...
-    met_param.alg, img_param.snr), 'a_gain', 'u_est')
+load(sprintf('../resources/ErrorMetrics/%s/alpha%.0f_%ddB.mat', ...
+    met_param.alg, met_param.p, img_param.snr), 'a_gain', 'u_est')
 
 train_dir = sprintf('../resources/TrainData/SPW2/snr%d/', img_param.snr);
 train_files = char(dir(fullfile(train_dir, '*.mat')).name);
@@ -66,12 +66,15 @@ end
 
 %% Show estimation examples
 img_param.snr = 60;
+met_param.alg = 'ack';
+met_param.p = 2;
 
-load(sprintf('../resources/ErrorMetrics/%s/alpha1_%ddB.mat', ...
-    met_param.alg, img_param.snr), 'err', 'err_0', 'param_list')
+load(sprintf('../resources/ErrorMetrics/%s/alpha%.0f_%ddB.mat', ...
+    met_param.alg, met_param.p, img_param.snr),...
+    'err', 'err_0', 'param_list')
 
 fig = figure(1);
-fig.Position = [900, 200, 500, 300];
+fig.Position = [900, 200, 300, 300];
 line_color = {'r', 'k', 'b', 'm'};
 metric = 3;
 
@@ -83,70 +86,184 @@ end
 
 hold off
 grid on
-title('Effect of parameter \alpha on estimation error.', 'FontSize', 14)
+th = sgtitle('\alpha vs. estimation error', 'FontSize', 14);
 ylabel('RMSE [\lambda]', 'FontSize', 12)
 xlabel('Parameter \alpha', 'FontSize', 12)
-ylim([2.5e-3 12.5e-3])
-legend({'2 m/s', '', '2.5 m/s', '', '3 m/s', ''}, 'FontSize', 12, 'Position', [0.17 0.16 0.1 0.1])
+ylim([3e-3 13e-3])
+legend({'2 m/s', '', '2.5 m/s', '', '3 m/s', ''}, 'FontSize', 10, ...
+    'Location', 'southwest')
 
 %% Show estimation metrics
+
+met_param.alg = 'ncc';
+met_param.p = 1.05;
+ct = 3;
 snr_list = [5, 20, 60];
 
 fig = figure(2);
-fig.Position = [900, 800, 400, 700];
+fig.Position = [900, 800, 300, 700];
 line_color = {'r', 'k', 'b', 'm'};
+sgtitle('Effect of parameter \alpha on estimation error', 'FontSize', 14)
 
 for i = 1:length(snr_list)
-    load(sprintf('../resources/ErrorMetrics/%s/alpha1_%ddB.mat', ...
-        met_param.alg, snr_list(i)), 'err', 'err_0', 'param_list')
+    load(sprintf('../resources/ErrorMetrics/%s/alpha%.0f_%ddB.mat', ...
+    met_param.alg, met_param.p, snr_list(i)), ...
+    'err', 'err_0', 'param_list')
     
-    err_mean = squeeze(mean(err(:, [1:4], :), 2));
+    err_mean = squeeze(mean(err(:, ct, :), 2));
+    err_lou = squeeze(mean(err_0(ct, :), 1));
 
     % Bias
     subplot(3, 1, 1)
     semilogx(param_list, err_mean(:, 1), line_color{i})
-    yline(err_0(3, 1), [line_color{i}, '--'])
+    yline(err_lou(1), [line_color{i}, '--'])
     hold on
 
     % Std.
     subplot(3, 1, 2)
     semilogx(param_list, sqrt(err_mean(:, 2)), line_color{i})
-    yline(sqrt(err_0(3, 2)), [line_color{i}, '--'])
+    yline(sqrt(err_lou(2)), [line_color{i}, '--'])
     hold on
 
     % RMSE
     subplot(3, 1, 3)
     semilogx(param_list, err_mean(:, 3), line_color{i})
-    yline(err_0(3, 3), [line_color{i}, '--'])
+    yline(err_lou(3), [line_color{i}, '--'])
     hold on
 end
 
-sgtitle('Effect of parameter \alpha on estimation error.', 'FontSize', 14)
 
-subplot(3, 1, 1)
+ax1 = subplot(3, 1, 1);
 hold off
 grid on
 ylabel('Bias [\lambda]', 'FontSize', 12)
-ylim([-4e-3 1e-3])
-%xlim([0.25 20])
+ylim([-4e-3 2e-3])
 legend({'5 dB', '', '20 dB', '', '60 dB', ''}, 'FontSize', 10, ...
-    'Position', [0.17 0.7 0.1 0.05])
+    'Location', 'northeast')
 
-subplot(3, 1, 2)
+ax2 = subplot(3, 1, 2);
 hold off
 grid on
 ylabel('St. Dev. [\lambda]', 'FontSize', 12)
 ylim([4e-3 12e-3])
-%xlim([0.25 20])
 legend({'5 dB', '', '20 dB', '', '60 dB', ''}, 'FontSize', 10, ...
-    'Position', [0.17 0.407 0.1 0.05])
+    'Location', 'northwest')
 
-subplot(3, 1, 3)
+ax3 = subplot(3, 1, 3);
 hold off
 grid on
 ylabel('RMSE [\lambda]', 'FontSize', 12)
 xlabel('Parameter \alpha', 'FontSize', 12)
 ylim([4e-3 12e-3])
-%xlim([0.25 20])
 legend({'5 dB', '', '20 dB', '', '60 dB', ''}, 'FontSize', 10, ...
-    'Position', [0.17 0.115 0.1 0.05])
+    'Location', 'northwest')
+
+linkaxes([ax1, ax2, ax3], 'x')
+
+%% Compare algorithms
+
+met_param.p = 1.05;
+img_param.snr = 5;
+ct = 2:4;
+x_limits = [10^2.2, 10^5];
+
+% Load Data
+load(sprintf('../resources/ErrorMetrics/%s/alpha%.0f_%ddB.mat', ...
+'ack', met_param.p, img_param.snr), ...
+'err', 'err_0', 'param_list')
+
+err_ack = squeeze(mean(err(:, ct, :), 2));
+err_lou = squeeze(mean(err_0(ct, :), 1));
+x_ack = param_list;
+
+load(sprintf('../resources/ErrorMetrics/%s/alpha%.0f_%ddB.mat', ...
+'ncc', met_param.p, img_param.snr), ...
+'err', 'param_list')
+
+err_ncc = squeeze(mean(err(:, ct, :), 2));
+x_ncc = param_list;
+
+% Plot figure
+fig = figure(3);
+fig.Position = [900, 800, 300, 700];
+line_color = {'r', 'k', 'b', 'm'};
+sgtitle('Likelihood performance versus \alpha', 'FontSize', 14)
+
+% Bias
+ax1 = subplot(3, 1, 1);
+semilogx(x_ack, err_ack(:, 1), line_color{1})
+hold on
+grid on
+semilogx(x_ncc * 1e3, err_ncc(:, 1), line_color{2})
+yline(err_lou(1), [line_color{3}, '--'])
+hold off
+xlim(x_limits)
+ylim([-3e-3 2e-3])
+ylabel('Bias [\lambda]', 'FontSize', 12)
+legend({'ACK', 'NCC', 'Loupas'}, 'FontSize', 10, 'Location', 'northeast');
+
+% Bias
+ax2 = subplot(3, 1, 2);
+semilogx(x_ack, sqrt(err_ack(:, 2)), line_color{1})
+hold on
+grid on
+semilogx(x_ncc * 1e3, sqrt(err_ncc(:, 2)), line_color{2})
+yline(sqrt(err_lou(2)), [line_color{3}, '--'])
+hold off
+xlim(x_limits)
+ylim([4e-3 12e-3])
+ylabel('St. Dev [\lambda]', 'FontSize', 12)
+legend({'ACK', 'NCC', 'Loupas'}, 'FontSize', 10, 'Location', 'southeast');
+
+% Bias
+ax3 = subplot(3, 1, 3);
+semilogx(x_ack, err_ack(:, 3), line_color{1})
+hold on
+grid on
+semilogx(x_ncc * 1e3, err_ncc(:, 3), line_color{2})
+yline(err_lou(3), [line_color{3}, '--'])
+hold off
+xlim(x_limits)
+ylim([4e-3 12e-3])
+ylabel('RMSE [\lambda]', 'FontSize', 12)
+xlabel('Parameter \alpha', 'FontSize', 12)
+legend({'ACK', 'NCC', 'Loupas'}, 'FontSize', 10, 'Location', 'southeast');
+
+linkaxes([ax1, ax2, ax3], 'x')
+
+%% Relative improvements
+
+met_param.p = 1.05;
+img_param.snr = 5;
+ct = 1:4;
+
+% Load Data
+load(sprintf('../resources/ErrorMetrics/%s/alpha%.0f_%ddB.mat', ...
+    'ack', 2, img_param.snr), ...
+    'err', 'err_0')
+
+impr_ack = zeros(length(ct), 1);
+
+for j = ct
+    err_lou = err_0(j, 3);
+    err_ack = min(err(:, j, 3), [], 'all');
+
+    impr_ack(j) = (err_lou - err_ack) / err_lou * 100;
+end
+
+impr_ack = mean(impr_ack)
+
+load(sprintf('../resources/ErrorMetrics/%s/alpha%.0f_%ddB.mat', ...
+    'ncc', met_param.p, img_param.snr), ...
+    'err')
+
+impr_ncc = zeros(length(ct), 1);
+
+for j = ct
+    err_lou = err_0(j, 3);
+    err_ncc = min(err(:, j, 3), [], 'all');
+
+    impr_ncc(j) = (err_lou - err_ncc) / err_lou * 100;
+end
+
+%impr_ncc = mean(impr_ncc)

@@ -1,6 +1,6 @@
 addpath('../lib/DispEst/')
 addpath('../lib/SonoSim/')
-graf = 1;
+graf = 0;
 
 %% Training parameters
 
@@ -39,72 +39,81 @@ opt_param = optimoptions('fmincon', ...
     );
 
 %% Calculate errors
+snr_list = [5, 20, 60];
+p_list = [1.05, 2];
+param_list = logspace(-1, 3, 18);
 
-param_list = logspace(2.1, 4.5, 18);
-train_dir = sprintf('../resources/TrainData/SPW2/snr%d/', img_param.snr);
-train_files = char(dir(fullfile(train_dir, '*.mat')).name);
-
-% Pre-allocate error metrics
-err = zeros(length(param_list), size(train_files, 1), 3);
-err_0 = zeros(size(train_files, 1), 3);
-a_gain = zeros(length(param_list), size(train_files, 1));
-
-for j = 1:size(train_files, 1)
-
-    % Load training data
-    load([train_dir, train_files(j, : )], ...
-        'RF_frames', 'I_frames', 'Q_frames', 'fr', 'c_t')
-    
-    % Split data into kernels
-    [est_z, est_x, RF_kern, I_kern, Q_kern] = ...
-        split_kernels(img_param, PData, RF_frames, I_frames, Q_frames);
-
-    % Load true displacement
-    [u_tru, ~]= interp_real_u(est_x, est_z, fr, PData, lambda, c_t);
-
-    % Calculate starting solution using Loupas and it's error metrics
-    u_0 = loupas_3D(I_kern, Q_kern);
-    err_0(j, :) = error_metrics(u_0, u_tru, 1);
-
-    if j == 1
-        % Pre-allocate estimations
-        u_est = zeros([length(param_list), size(train_files, 1), size(u_0)]);
-    end
-
-    for i = 1:length(param_list); tic();
-
-        % Update parameter
-        met_param.alpha = param_list(i);
-
-        % Select kernel corresponding to current frame
-        fun = @(u) -eval_posterior_2D(met_param, RF_kern, u);
-
-        % Maximize posterior probability for each frame
-        u_hat = fmincon(fun, 0 * u_0, [], [], [], [],...
-           -0.5 * ones(size(u_0)),...
-            0.5 * ones(size(u_0)), [], opt_param);
-
-        % Find best gain
-        a_gain(i, j) = norm(u_hat(:) - u_tru(:), 2) / norm(u_hat(:),  2);
-    
-        % Calculate error metrics (without gain)
-        err(i, j, :) = error_metrics(u_hat, u_tru, 1);
-
-        fprintf('i = %d | c_t =%5.2f | t =%4.0f\n', i, c_t, toc());
-
-        % Save estimation
-        u_est(i, j, :, :) = u_hat;
-
-        if graf
-            % Show estimations versus ground truth
-            compare_frame(est_x, est_z, u_0, u_hat, u_tru)
+for p = p_list
+    met_param.p = p;
+    for snr_i = snr_list
+        img_param.snr = snr_i;
+        
+        train_dir = sprintf('../resources/TrainData/SPW2/snr%d/', img_param.snr);
+        train_files = char(dir(fullfile(train_dir, '*.mat')).name);
+        
+        % Pre-allocate error metrics
+        err = zeros(length(param_list), size(train_files, 1), 3);
+        err_0 = zeros(size(train_files, 1), 3);
+        a_gain = zeros(length(param_list), size(train_files, 1));
+        
+        for j = 1:size(train_files, 1)
+        
+            % Load training data
+            load([train_dir, train_files(j, : )], ...
+                'RF_frames', 'I_frames', 'Q_frames', 'fr', 'c_t')
+            
+            % Split data into kernels
+            [est_z, est_x, RF_kern, I_kern, Q_kern] = ...
+                split_kernels(img_param, PData, RF_frames, I_frames, Q_frames);
+        
+            % Load true displacement
+            [u_tru, ~]= interp_real_u(est_x, est_z, fr, PData, lambda, c_t);
+        
+            % Calculate starting solution using Loupas and it's error metrics
+            u_0 = loupas_3D(I_kern, Q_kern);
+            err_0(j, :) = error_metrics(u_0, u_tru, 1);
+        
+            if j == 1
+                % Pre-allocate estimations
+                u_est = zeros([length(param_list), size(train_files, 1), size(u_0)]);
+            end
+        
+            for i = 1:length(param_list); tic();
+        
+                % Update parameter
+                met_param.alpha = param_list(i);
+        
+                % Select kernel corresponding to current frame
+                fun = @(u) -eval_posterior_2D(met_param, RF_kern, u);
+        
+                % Maximize posterior probability for each frame
+                u_hat = fmincon(fun, 0 * u_0, [], [], [], [],...
+                   -0.5 * ones(size(u_0)),...
+                    0.5 * ones(size(u_0)), [], opt_param);
+        
+                % Find best gain
+                a_gain(i, j) = norm(u_hat(:) - u_tru(:), 2) / norm(u_hat(:),  2);
+            
+                % Calculate error metrics (without gain)
+                err(i, j, :) = error_metrics(u_hat, u_tru, 1);
+        
+                fprintf('i = %d | c_t =%5.2f | t =%4.0f\n', i, c_t, toc());
+        
+                % Save estimation
+                u_est(i, j, :, :) = u_hat;
+        
+                if graf
+                    % Show estimations versus ground truth
+                    compare_frame(est_x, est_z, u_0, u_hat, u_tru)
+                end
+            end
+        end
+        
+        if ~graf
+        save(sprintf('../resources/ErrorMetrics/%s/alpha%.0f_%ddB.mat', ...
+             met_param.alg, met_param.p, img_param.snr), ...
+            'u_est', 'err', 'err_0', 'a_gain', ...
+            'param_list', 'img_param', 'met_param', 'opt_param')
         end
     end
-end
-
-if ~graf
-save(sprintf('../resources/ErrorMetrics/%s/alpha1_%ddB.mat', ...
-    met_param.alg, img_param.snr), ...
-    'u_est', 'err', 'err_0', 'a_gain', ...
-    'param_list', 'img_param', 'met_param', 'opt_param')
 end
