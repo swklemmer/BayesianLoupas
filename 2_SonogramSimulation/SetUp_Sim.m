@@ -7,7 +7,7 @@ P = struct(...
     'startDepth',   25, ...     % acq. start depth [wvls]
     'endDepth',     75, ...     % acq. end depth [wvls]
     'latDist',      30, ...     % acq. lateral span [wvls]
-    'bmode_dly',    50, ...    % delay between b-mode images [usec] (20kHz)
+    'bmode_dly',    50, ...     % delay between b-mode images [usec] (20kHz)
     'bmode_adq',    2e3 / 50, ... % b-mode acq. number
     'hv',           1.6, ...    % transmition bipolar voltage
     'n_ang',        3, ...      % nr. of steering angles
@@ -31,7 +31,8 @@ img_param = struct(...
     'z_hop',    5, ...      % axial kernel hop    [wvls]
     'x_len',    2, ...      % late. kernel length [wvls]
     'x_hop',    2, ...      % late. kernel hop    [wvls]
-    't_len',    3 ...       % temp. kernel length [wvls]
+    't_len',    3, ...      % temp. kernel length [wvls]
+    'n_ang',    3 ...       % nr. of steering angles
     );
 
 % Estimation parameters

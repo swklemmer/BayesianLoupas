@@ -1,18 +1,21 @@
 SetUp_Sim;
 
-ct_list = 0.5:0.25:3;  % shear wave speed [m/s]
+ct_list = 1.5:0.25:2.5;  % shear wave speed [m/s]
 N_exp = 1;              % nr. of experiment per sws
+
 
 %% NL-Beamforming over Magnitude Data
 
 for c_t = flip(ct_list)    
     for n_i = 1:N_exp
         % Load results
-        load(sprintf('../resources/BModeData/MAS/ct%4.2f_%d.mat', ...
-            c_t, n_i), 'img_x', 'img_z', 'BFData')
+        load(sprintf('../resources/BModeData/SPW/ct%4.2f_%d.mat', ...
+            c_t, n_i), 'img_x', 'img_z', 'IData', 'QData')
 
         % Show displacement
-        BMS_show_beamf(hObject, 0, c_t);
+        img_z = img_z + P.startDepth;
+        BFData = squeeze(IData{1}.^2 + QData{1}.^2);
+        BMS_show_beamf(0, 0);
     end
 end
 
@@ -30,7 +33,9 @@ for c_t = flip(ct_list)
 
         % Show displacement
         BFData = I_mas.^2 + Q_mas.^2;
-        BMS_show_beamf(hObject, 0, c_t);
+        BMS_show_beamf(0, 0, c_t);
+
+        pause()
     end
 end
 

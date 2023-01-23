@@ -71,17 +71,18 @@ ncc1_e = mean(ncc1_e, 1);
 fig = figure(1);
 fig.Position = [800, 200, 250, 200];
 subplot(1, 1, 1)
-plot(t_dim, ack1_e)
+plot(100 * t_dim / t_dim(end), ack1_e)
 hold on
-plot(t_dim, ack2_e)
-plot(t_dim, ncc1_e)
+plot(100 * t_dim / t_dim(end), ack2_e)
+plot(100 * t_dim / t_dim(end), ncc1_e)
 hold off
 grid on
 ylim([6e-3, 11e-3])
-xlim([1, 150])
-xlabel('Optimization time [s]', 'FontSize', 12)
+xlim([1, 100])
+xlabel('Optimization time [%]', 'FontSize', 12)
 ylabel('RMSE [\lambda]', 'FontSize', 12)
 sgtitle('Convergence time')
+sgtitle(' ')
 legend({'ACK L1', 'ACK L2', 'NCC L1'}, 'FontSize', 10, ...
     'Location', 'northeast')
 

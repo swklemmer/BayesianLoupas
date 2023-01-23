@@ -14,7 +14,7 @@ SNR = img_param.SNR;
 % Scat position and intensity
 M_max = ceil(z_max / (f_c * t_s));
 max_u = ceil(abs((N - 1) * u_true / (f_c * t_s))); % [smpls]
-n_scat = ceil(15 * (M_max + max_u) * t_s / t_cell); % 15 scat/cell
+n_scat = ceil(0.4 * (M_max + max_u) * t_s / t_cell); % 15 scat/cell
 scat_pos = 1 + (1-sign(u_true)) * max_u / 2 + rand(n_scat, 1) * (M_max-1);
 scat_int = max(1 + 0.25 * randn(n_scat, 1), 0);
 
@@ -60,14 +60,35 @@ rf_lines_c = rf_lines_n((1:M_max) + max_u, :);
 
 % Show RF lines
 if size(varargin) > 0
-    fig = figure(2);
+    fig = figure(1);
+    fig.Position = [100, 400, 300, 200];
+    stem(scat_pos / 4, scat_int, 'r*', 'MarkerSize', 10)
+    xlabel('Axial position [$\lambda$]', 'Interpreter','latex')
+    ylabel('Reflectivity [adim]', 'Interpreter','latex')
+    xlim([0, (M_max - 1)/4])
+    ylim([0, 1.3])
+    grid on
+    title('\textbf{Scatterers}', 'Interpreter','latex')
+
+%     fig = figure(2);
+%     fig.Position = [300, 600, 300, 200];
+%     plot((0:M_max-1) * t_s, rf_lines_c);
+%     grid on;
+%     xlabel('Time [s]')
+%     xlim([0, (M_max - 1) * t_s])
+%     ylim(sqrt(n_scat) * [-2, 2])
+%     title('RF Lines')
+
+    fig = figure(3);
     fig.Position = [300, 600, 300, 200];
-    plot((0:M_max-1) * t_s, rf_lines_c);
+    plot((0:M_max-1) / 4, rf_lines_c);
     grid on;
-    xlabel('Time [s]')
-    xlim([0, (M_max - 1) * t_s])
-    ylim(sqrt(n_scat) * [-2, 2])
-    title('RF Lines')
+    xlabel('Axial position [$\lambda$]', 'Interpreter','latex')
+    xlim([0, (M_max - 1)/4])
+    ylim([-3.1, 3.1])
+    title('\textbf{Received signal}', 'Interpreter','latex')
+    ylabel('Amplitude [V]', 'Interpreter','latex')
+
 end
 
 end

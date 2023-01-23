@@ -5,7 +5,7 @@ addpath('../lib/DispEst')
 % Experiment info
 alg_list = {'ack', 'ncc'};
 exp_param = 'z_max';
-param_list = 2:15;
+param_list = logspace(-4, -1, 20);
 
 % Transducer (Verasonics L11-5V) and transmit parameters
 load('../resources/L11-5v_Steer.mat', 'PData', 'Trans', 'TX', 'TW', 'Receive');

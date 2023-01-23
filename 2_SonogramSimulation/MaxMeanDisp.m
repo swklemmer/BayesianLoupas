@@ -17,12 +17,11 @@ for i = 1:length(ct_list)
     mean_u(i) = mean(u_z, 'all') / lambda;
     max_u(i) = max(u_z, [], 'all') / lambda;
 
-    histogram(u_z(:) / lambda, [-0.5, 0.5, 10])
-    title('Displacement histogram', 'FontSize', 14)
-    ylabel("# Nodes", 'FontSize', 12)
-    xlabel("Axial Displacement [\lambda]", 'FontSize', 12)
-    grid on
-    break
+%     histogram(u_z(:) / lambda, [-0.5, 0.5, 10])
+%     title('Displacement histogram', 'FontSize', 14)
+%     ylabel("# Nodes", 'FontSize', 12)
+%     xlabel("Axial Displacement [\lambda]", 'FontSize', 12)
+%     grid on
 end
 
 %% Show results
@@ -30,15 +29,15 @@ end
 fig = figure(1);
 fig.Position = [0, 0, 750, 300];
 subplot(1, 2, 1)
-semilogx(3e3 * ct_list.^2, max_u)
+plot(ct_list, max_u)
 title('Peak displacement', 'FontSize', 14)
-xlabel("Young's Modulus [Pa]", 'FontSize', 12)
+xlabel("Shear wave speed [m/s]", 'FontSize', 12)
 ylabel("Axial Displacement [\lambda]", 'FontSize', 12)
 grid on
 
 subplot(1, 2, 2)
-semilogx(3e3 * ct_list.^2, mean_u)
+plot(ct_list, mean_u)
 title('Mean displacement', 'FontSize', 14)
-xlabel("Young's Modulus [Pa]", 'FontSize', 12)
+xlabel("Shear wave speed [m/s]", 'FontSize', 12)
 ylabel("Axial Displacement [\lambda]", 'FontSize', 12)
 grid on

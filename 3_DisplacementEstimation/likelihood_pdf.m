@@ -1,10 +1,10 @@
-clear all
+%clear all
 addpath('../lib/DispEst/')
 addpath('../lib/SonoSim/')
 %addpath('lib/fraccircshift/')
 
 % Experiment info
-alg_list = {'ack'};
+alg_list = {'ack', 'ncc'};
 
 % Imaging parameters
 img_param = struct(...
@@ -21,14 +21,14 @@ img_param.t_s = 1 / (4 * img_param.f_c);
 img_param.M = ceil(img_param.z_max / (img_param.f_c * img_param.t_s));
 img_param.SNR_rho = 10^(img_param.SNR/20);
 
-% Method parameters
+% % Method parameters
 met_param = struct(...
     'u_dim', -0.5:1e-3:0.5, ... % [lmbds]
-    'ack_a', 10e-3, ...           % [distribution width]
+    'ack_a', 1e-3, ...           % [distribution width]
     'ncc_a', 2e-2);              % [distribution width]
 
 % Simulation parameters
-rng(420)
+rng(19122022)
 u_true = -0.2; % [lmbds]
 
 % Create gaussian RF Pulse 
