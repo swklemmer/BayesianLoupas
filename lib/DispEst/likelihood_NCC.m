@@ -1,5 +1,5 @@
 function [p_xu, elapsed_t] = likelihood_NCC(...
-                f_c, t_s, N, rf_lines, u_dim, alpha, varargin)
+                f_c, t_s, rf_lines, u_dim, alpha, varargin)
 %LIKELIHOOD_NCC
 % Returns likelihood function using NCC (Normalized Cross-Correlation).
 % Uses parabolic interpolation to measure likelihood at sumb-sample
@@ -12,6 +12,9 @@ if evalin('base', 'param_flag')
 
     % Lower parameter change flag
     assignin('base', 'param_flag', 0);
+
+    % Retrieve signal dimensions
+    N = size(rf_lines, 2);
     
     % Transalte lambda dimention to sample dimention
     s_dim = - u_dim / (f_c * t_s);
@@ -37,7 +40,7 @@ for n = 1:(N-1)
 end
 
 % Normalize likelihood
-p_xu = p_xu / sum(p_xu);
+p_xu = p_xu / sum(p_xu) / diff(u_dim(1:2));
 
 % Return elapsed time
 elapsed_t = toc();

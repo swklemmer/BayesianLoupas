@@ -5,115 +5,157 @@ graf = 0;
 %% Training parameters
 
 % Transducer (Verasonics L11-5V) and transmit parameters
-load('../resources/L11-5v_Steer.mat', 'PData', 'Trans', 'TX', 'TW');
-lambda = 1540 / (Trans.frequency * 1e6);
+load('../resources/L11-5v_PWI.mat', ...
+    'PData', 'Parameters', 'Trans', 'TX', 'TW', 'Receive');
+lambda = 1540 / (TW(1).Parameters(1) * 1e6);
 
 % Imaging parameters
-img_param = struct(...
-    'fr_n',     40, ...     % input frame number
-    'fr_d',     1, ...      % frame rate decimation (1 --> 20 kHz)
-    'snr',      60, ...     % signal-to-noise-ratio [dB]
-    'z_len',    8, ...      % axial kernel length [wvls]
-    'z_hop',    2, ...      % axial kernel hop    [wvls]
-    'x_len',    2, ...      % late. kernel length [wvls]
-    'x_hop',    2, ...      % late. kernel hop    [wvls]
-    't_len',    2 ...       % temp. kernel length [wvls]
+img_p = struct(...
+    'f_c',      TW(1).Parameters(1) * 1e6, ...  % central frequency [Hz]
+    'f_s',      TW(1).Parameters(1) / PData.PDelta(3) * 1e6, ... % s.f.[Hz]
+    't_s',      -1, ...                         % sampling frequency [Hz]
+    'snr',      -1 ...                         % signal-to-noise-ratio [dB]
+    );
+
+img_p.t_s = 1 / img_p.f_s;
+
+% Estimation parameters
+est_p = struct(...
+    'z_len',    10, ...     % axial kernel length [wvls]
+    'z_hop',    2, ...     % axial kernel hop    [wvls]
+    'x_len',    .5, ...    % late. kernel length [wvls]
+    'x_hop',    2, ...     % late. kernel hop    [wvls]
+    't_len',    2, ...     % temp. kernel length [frames]
+    'fin_mref', 1, ...     % fine est. moving reference frame
+    'fin_win',  1 ...      % fine est. windowing
     );
 
 % Method parameters
-met_param = struct(...
-    'alpha',    3, ...      % prior weight
-    'p',        1.05, ...      % norm deegree
-    'vcn_z',    3, ...      % axial vecinity size [kernels]
-    'vcn_x',    1, ...      % late. vecinity size [kernels]
-    'alg',      'ncc' ...   % Likelihood function
+met_p = struct(...
+    'alg',     -1, ...  % Likelihood function
+    'alpha',   -1, ...  % prior weight
+    'p',       -1, ...  % norm deegree
+    'vcn_z',    3, ...  % axial vecinity size [kernels]
+    'vcn_x',    1 ...   % late. vecinity size [kernels]
     );
 
 % Optimization parameters
-opt_param = optimoptions('fmincon', ...
+opt_p = optimoptions('fmincon', ...
     'Display', 'none', ...
     'MaxFunctionEvaluations', 2e4, ...
-    'MaxIterations', 3e1, ...
-    'OptimalityTolerance', 1e-4, ...
-    'StepTolerance', 1e-6 ...
+    'MaxIterations', 10, ...
+    'OptimalityTolerance', 1e-2, ...
+    'StepTolerance', 1e-5 ...
     );
 
 %% Calculate errors
-snr_list = [5, 20, 60];
-p_list = [1.05, 2];
-param_list = logspace(-1, 3, 18);
+alg_list = {'ack', 'ncc', 'sqck'};
+p_list = [1, 2];
+snr_list = [5 20 60];
+prm_list = logspace(0, 2, 10);
+ct_list = 1.25:0.5:3; % [m/s]
+it_list = 5:7;
 
-for p = p_list
-    met_param.p = p;
-    for snr_i = snr_list
-        img_param.snr = snr_i;
-        
-        train_dir = sprintf('../resources/TrainData/SPW2/snr%d/', img_param.snr);
-        train_files = char(dir(fullfile(train_dir, '*.mat')).name);
-        
-        % Pre-allocate error metrics
-        err = zeros(length(param_list), size(train_files, 1), 3);
-        err_0 = zeros(size(train_files, 1), 3);
-        a_gain = zeros(length(param_list), size(train_files, 1));
-        
-        for j = 1:size(train_files, 1)
-        
-            % Load training data
-            load([train_dir, train_files(j, : )], ...
-                'RF_frames', 'I_frames', 'Q_frames', 'fr', 'c_t')
-            
-            % Split data into kernels
-            [est_z, est_x, RF_kern, I_kern, Q_kern] = ...
-                split_kernels(img_param, PData, RF_frames, I_frames, Q_frames);
-        
-            % Load true displacement
-            [u_tru, ~]= interp_real_u(est_x, est_z, fr, PData, lambda, c_t);
-        
-            % Calculate starting solution using Loupas and it's error metrics
-            u_0 = loupas_3D(I_kern, Q_kern);
-            err_0(j, :) = error_metrics(u_0, u_tru, 1);
-        
-            if j == 1
-                % Pre-allocate estimations
-                u_est = zeros([length(param_list), size(train_files, 1), size(u_0)]);
+
+% Pre-allocate error metrics
+err = zeros(length(prm_list), length(ct_list), length(it_list), 3);
+err_0 = zeros(length(prm_list), length(ct_list), length(it_list), 3);
+elap_t = zeros(length(prm_list), length(ct_list), length(it_list));
+
+tic()
+for alg = alg_list
+    for p = p_list
+        met_p.p = p;
+        met_p.alg = alg{1};
+
+        % Choose alpha range
+        if (p == 1)
+            if strcmp(met_p.alg, 'ack')
+                prm_list = logspace(0, 2, 10);
+            elseif strcmp(met_p.alg, 'ncc')
+                prm_list = logspace(-1.5, 0.5, 10);
+            elseif strcmp(met_p.alg, 'sqck')
+                prm_list = logspace(0, 2, 10);
             end
-        
-            for i = 1:length(param_list); tic();
-        
+        elseif (p == 2)
+            if strcmp(met_p.alg, 'ack')
+                prm_list = logspace(-0.5, 1, 10);
+            elseif strcmp(met_p.alg, 'ncc')
+                prm_list = logspace(-2, -1, 10);
+            elseif strcmp(met_p.alg, 'sqck')
+                prm_list = logspace(-2, 0, 10);
+            end
+        end
+
+        for snr_i = 1:length(snr_list)
+            img_p.snr = snr_list(snr_i);
+
+            for prm_j = 1:length(prm_list)
+
+                % Raise parameter change flag
+                param_flag = 1;
+
                 % Update parameter
-                met_param.alpha = param_list(i);
-        
-                % Select kernel corresponding to current frame
-                fun = @(u) -eval_posterior_2D(met_param, RF_kern, u);
-        
-                % Maximize posterior probability for each frame
-                u_hat = fmincon(fun, 0 * u_0, [], [], [], [],...
-                   -0.5 * ones(size(u_0)),...
-                    0.5 * ones(size(u_0)), [], opt_param);
-        
-                % Find best gain
-                a_gain(i, j) = norm(u_hat(:) - u_tru(:), 2) / norm(u_hat(:),  2);
-            
-                % Calculate error metrics (without gain)
-                err(i, j, :) = error_metrics(u_hat, u_tru, 1);
-        
-                fprintf('i = %d | c_t =%5.2f | t =%4.0f\n', i, c_t, toc());
-        
-                % Save estimation
-                u_est(i, j, :, :) = u_hat;
-        
-                if graf
-                    % Show estimations versus ground truth
-                    compare_frame(est_x, est_z, u_0, u_hat, u_tru)
+                met_p.alpha = prm_list(prm_j);
+
+                for ct_k = 1:length(ct_list)
+
+                    % Load ground truth
+                    load(sprintf( ...
+                        '../resources/EstData/ground_truth/%.2f.mat', ct_list(ct_k)), ...
+                        'u_mean');
+
+                    for it_l = it_list
+                        % Load training data
+                        load(sprintf('../resources/TrainData/SPW/snr%d/ct%.2f_%d', ...
+                            snr_list(snr_i), ct_list(ct_k), it_l), ...
+                            'RF_frames', 'I_frames', 'Q_frames', 'fr')
+
+                        % Split data into kernels
+                        [est_z, est_x, RF_kern, I_kern, Q_kern] = ...
+                            split_kernels(est_p, PData, RF_frames, I_frames, Q_frames);
+
+                        % Calculate starting solution using Loupas and its error metrics
+                        u_0 = loupas_3D(est_p, I_kern, Q_kern);
+                        err_0(prm_j, ct_k, it_l, :) = error_metrics(u_0, u_mean, 1);
+
+                        % Pre-compute maximum fast freqeuncy
+                        max_fc = pre_comp_SQCK(img_p, u_0, RF_kern);
+
+                        if (prm_j == 1) && (ct_k == 1) && (it_l == 1)
+                            % Pre-allocate estimations
+                            u_est = zeros([length(prm_list), length(ct_list), length(it_list), size(u_0)]);
+                        end
+
+                        % Declare loss function
+                        fun = @(u) -eval_posterior_2D(img_p, met_p, RF_kern, u);
+
+                        % Maximize posterior probability for each frame
+                        u_hat = fmincon(fun, u_0, [], [], [], [],...
+                            -0.5 * ones(size(u_0)),...
+                            0.5 * ones(size(u_0)), [], opt_p);
+
+                        % Calculate error metrics (without gain)
+                        err(prm_j, ct_k, it_l, :) = error_metrics(u_hat, u_mean, 1);
+
+                        fprintf('alg = %s-L%d | param = %d | c_t =%5.2f | it = %d | t =%4.0f\n', ...
+                            alg{1}, p, prm_j, ct_list(ct_k), it_l, toc());
+
+                        % Save estimation
+                        u_est(prm_j, ct_k, it_l, :, :) = u_hat;
+
+                    end
                 end
             end
-        end
-        
-        if ~graf
-        save(sprintf('../resources/ErrorMetrics/%s/alpha%.0f_%ddB.mat', ...
-             met_param.alg, met_param.p, img_param.snr), ...
-            'u_est', 'err', 'err_0', 'a_gain', ...
-            'param_list', 'img_param', 'met_param', 'opt_param')
+
+            if ~graf
+                mkdir(sprintf('../resources/ErrorMetrics/comp_%s-L%d', met_p.alg, met_p.p))
+                save(sprintf('../resources/ErrorMetrics/comp_%s-L%d/snr%ddB.mat', ...
+                    met_p.alg, met_p.p, img_p.snr), ...
+                    'est_x', 'est_z', 'u_est', 'err', 'err_0', ...
+                    'prm_list', 'img_p', 'met_p', 'opt_p')
+            end
         end
     end
+
 end

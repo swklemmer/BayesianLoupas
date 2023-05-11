@@ -1,10 +1,11 @@
 % This script provides an environment to simulate B-mode images using angle
 % compunding and non-linear beamforming
 
-cd('../../Vantage-4.7.6/')
+cd('../../../Vantage-4.7.6/')
 activate;
 rmpath('lib/')
-cd('../BayesianLoupas/2_SonogramSimulation/')
+cd('../Charité/BayesianLoupas/2_SonogramSimulation/')
+addpath('../../../Vantage-4.7.6/Utilities')
 addpath('../lib/SonoSim/');
 addpath('../lib/SonoSim/BMS_aux/');
 
@@ -84,10 +85,10 @@ for c_t = ct_list
     
         % Save all the structures to a .mat file and run
         filename = 'BMS';
-        cd('../../Vantage-4.7.6/')
+        cd('../../../Vantage-4.7.6/')
         save(['MatFiles/', filename]);
         tic(); VSX; elap_t = toc();
-        cd('../BayesianLoupas/2_SonogramSimulation/')
+        cd('../Charité/BayesianLoupas/2_SonogramSimulation/')
 
         % Save results
         save(sprintf('../resources/BModeData/SPW/ct%4.2f_%d.mat', ...

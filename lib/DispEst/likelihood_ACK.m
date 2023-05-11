@@ -1,5 +1,5 @@
 function [p_xu, elapsed_t] = likelihood_ACK(...
-                f_c, t_s, M, N, rf_lines, u_dim, alpha, varargin)
+                f_c, t_s, rf_lines, u_dim, alpha, varargin)
 %LIKELIHOOD_ACK 
 % Returns likelihood function using ACK (AutoCorrelation Kernels).
 % It operates by directly evaluating the power spectrum  for f (fast 
@@ -10,13 +10,17 @@ function [p_xu, elapsed_t] = likelihood_ACK(...
 % time, the Wiener-Khinchin Theorem can be used to calculate the
 % autocorrelation in frequency domain.
 
-persistent phi
+persistent phi M N
 
 % Run only when parameters are changed
 if evalin('base', 'param_flag')
 
     % Lower parameter change flag
     assignin('base', 'param_flag', 0);
+
+    % Retrieve signal dimensions
+    M = size(rf_lines, 1);
+    N = size(rf_lines, 2);
 
     % Create Phi Kernel
     phi = zeros(length(u_dim), 2*M-1, 2*N-1);
@@ -39,11 +43,11 @@ p_xu = zeros(length(u_dim), 1);
 
 for u = 1:length(u_dim)
     phi_u = squeeze(phi(u, :, :));
-    p_xu(u) = exp(min(gamma(:)' * phi_u(:) / (alpha * 1e-2), 700));
+    p_xu(u) = exp(gamma(:)' * phi_u(:) / alpha);
 end
 
 % Normalize likelihood
-p_xu = p_xu / sum(p_xu);
+p_xu = p_xu / sum(p_xu) / diff(u_dim(1:2));
 
 % Return elapsed time
 elapsed_t = toc();

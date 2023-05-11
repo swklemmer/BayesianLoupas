@@ -12,8 +12,7 @@ max_3 = max(u_3, [], 'all');
 min_a = min([min_1, min_2, min_3]);
 max_a = max([max_1, max_2, max_3]);
 
-% Maximum time step
-t_max = size(u_1, 3);
+% Plot figures
 
 fig = figure();
 subplot(3, 2, 1)

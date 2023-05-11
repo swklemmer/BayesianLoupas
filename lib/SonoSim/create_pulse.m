@@ -8,7 +8,7 @@ bw = img_param.bw;
 t_s = img_param.t_s;
 
 % Create time steps
-N_pulse = 2 * ceil(1e-6 / t_s / 2); % [smpls]
+N_pulse = 2 * ceil(3e-6 / t_s / 2); % [smpls]
 t_pulse = ((1:N_pulse) - N_pulse/2) * t_s; % [s]
 
 % Create complex IQ signal

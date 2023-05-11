@@ -1,4 +1,4 @@
-function [cell_vol, x_fwhm] = resolution_cell(...
+function [cell_vol, x_fwhm, z_fwhm] = resolution_cell(...
                         img_param, sim_param, trans_param, tw, varargin)
 %RESOLUTION_CELL Calculate de -6dB elliptic cylinder volume of a given
 % transducer configuration.
@@ -105,8 +105,8 @@ if n_ang > 1
     y_fil = filtfilt(bp_fir, 1, y_mas')';
 
     % Demodulate RF signals at 2 f_c
-    x_demod = abs(demodulate_rf(2 * f_c, f_s, bw / 2, 201, x_fil'))';
-    y_demod = abs(demodulate_rf(2 * f_c, f_s, bw / 2, 201, y_fil'))';
+    x_demod = abs(demodulate_rf(2 * f_c, f_s, 201, x_fil'))';
+    y_demod = abs(demodulate_rf(2 * f_c, f_s, 201, y_fil'))';
 
 else
     % For a single angle
@@ -115,8 +115,8 @@ else
     x_fil = x_mas;
 
     % Demodulate RF signals
-    x_demod = abs(demodulate_rf(f_c, f_s, bw / 2, 201, x_mas'))';
-    y_demod = abs(demodulate_rf(f_c, f_s, bw / 2, 201, y_mas'))';
+    x_demod = abs(demodulate_rf(f_c, f_s, 201, x_mas'))';
+    y_demod = abs(demodulate_rf(f_c, f_s, 201, y_mas'))';
 end
 
 % Normalize IQ signals
@@ -139,7 +139,7 @@ y_f = find(y_c > 10^(-6/20), 1, "last");
 y_fwhm = y_dim(y_f) - y_dim(y_0);
 
 % Calculate -6dB width of transmited pulse
-pulse_env = abs(demodulate_rf(f_c, 250e6, 1, 61, tw.Wvfm2Wy));
+pulse_env = abs(demodulate_rf(f_c, 250e6, 61, tw.Wvfm2Wy));
 pulse_env = (pulse_env / max(pulse_env, [], 1));
 z_0 = find(pulse_env > 10^(-6/20), 1, "first");
 z_f = find(pulse_env > 10^(-6/20), 1, "last");

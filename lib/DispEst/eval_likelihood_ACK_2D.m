@@ -1,4 +1,4 @@
-function p_xu = eval_likelihood_ACK_2D(rf_data, u_sol)
+function p_xu = eval_likelihood_ACK_2D(img_p, rf_data, u_sol)
 %LIKELIHOOD_ACK_3D
 % Evaluate the likelihood function of the RF data given a candidate
 % solution using the "AutoCorrelation Kernel" method.
@@ -19,8 +19,8 @@ for z = 1:size(rf_data, 1)
         % Combine parallel RF lines
         rf_lines = squeeze(sum(rf_data(z, x, :, :, :, :), 5));
 
-        % Create Autocorrelation mask [4 smpls per wvl]
-        k_u = - u_sol(z, x) * 4;
+        % Create Autocorrelation mask [f_s / f_c == smpls per wvl]
+        k_u = - u_sol(z, x) * img_p.f_s / img_p.f_c;
         phi = sinc(tau_m' + k_u * tau_n);
     
         % Calculate normalized autocorr. using Wiener-Khinchin Theorem

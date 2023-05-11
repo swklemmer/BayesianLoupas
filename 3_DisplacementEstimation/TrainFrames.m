@@ -2,60 +2,97 @@ addpath('../lib/SonoSim/')
 addpath('../lib/DispEst/')
 graf = 0;
 
-%% Transducer (Verasonics L11-5V) and transmit parameters
-load('../resources/L11-5v_Steer.mat', 'PData', 'Trans', 'TX', 'TW');
+%% Simulation parameters
+
+oversample = 1; % Increase oversampling by a factor of d_samples [bool]
+
+% Transducer (Verasonics L11-5V) and transmit parameters
+load('../resources/L11-5v_PWI.mat', ...
+    'PData', 'Parameters', 'Trans', 'TX', 'TW', 'Receive');
+lambda = 1540 / (TW(1).Parameters(1) * 1e6);
+
+% Increase sample rate
+if oversample
+    d_samples = 20;
+    PData.PDelta(3) = PData.PDelta(3) / d_samples;
+    PData.Size(1) = d_samples * PData.Size(1);
+end
 
 % Imaging parameters
-img_param = struct(...
-    'fr_n',     40, ...     % input frame number
-    'fr_d',     1, ...      % frame rate decimation (1 --> 20 kHz)
-    'snr',      60, ...     % signal-to-noise-ratio [dB]
-    'n_ang',    1, ...      % steering angles
-    't_len',    2 ...       % temp. kernel length [wvls]
+img_p = struct(...
+    'f_c',      TW(1).Parameters(1) * 1e6, ...  % central frequency [Hz]
+    'f_s',      TW(1).Parameters(1) / PData.PDelta(3) * 1e6, ... % sam. fr
+    't_s',      -1, ...         % sampling frequency [Hz]
+    'snr',      300, ...        % signal-to-noise-ratio [dB]
+    'n_ang',    1, ...          % nr. of steering angles
+    'fr_n',     40 ...          % nr. of input frames
     );
 
-snr_list = [5:5:30, 60]; % signal-to-noise-ratio [dB]
-ct_list = 1.5:0.5:3; % shear wave speed [m/s]
+img_p.t_s = 1 / img_p.f_s;
+
+% Estimation parameters
+est_p = struct(...
+    'z_len',    10, ...     % axial kernel length [wvls]
+    'z_hop',    2, ...      % axial kernel hop    [wvls]
+    'x_len',    .5, ...      % late. kernel length [wvls]
+    'x_hop',    2, ...      % late. kernel hop    [wvls]
+    't_len',    2, ...      % temp. kernel length [frames]
+    'crs_mref', 0, ...      % coarse est. moving reference frame
+    'fin_mref', 1, ...      % fine est. moving reference frame
+    'crs_med',  1, ...      % coarse est. median filter
+    'crs_sub',  .1, ...     % coarse sub-sample precission (ncc_poly only)
+    'crs_win',  1, ...      % coarse est. windowing
+    'fin_win',  0, ...      % fine est. windowing
+    'moco_win', 0 ...       % motion correction windowing
+   );
+
+snr_list = [60 20 5]; % signal-to-noise-ratio [dB]
+ct_list = 1.25:0.5:3; % shear wave speed [m/s]
 
 % Save directory
-save_dir = 'SPW2';
+save_dir = '../resources/TrainData/SPW';
+mkdir(save_dir);
+
+%% Start simulation
 
 RF_frames = zeros([PData.Size([1 2]), 3]);
 I_frames = zeros([PData.Size([1 2]), 3]);
 Q_frames = zeros([PData.Size([1 2]), 3]);
-rng(6942)
 
+tic();
 for snr = snr_list
-    img_param.snr = snr;
-    mkdir(sprintf('../resources/TrainData/%s/snr%d', save_dir, img_param.snr))
+    img_p.snr = snr;
+    mkdir(sprintf('%s/snr%d', save_dir, img_p.snr))
     for c_t = ct_list 
-        tic();
-        % Load bmode images
-        load(sprintf('../resources/BmodeData/SPW/ct%4.2f_1.mat', c_t), ...
-            'RcvData', 'img_x', 'img_z')
-
-        % Select center frame at random
-        fr = randi([15, img_param.fr_n - img_param.t_len]);
-        frames = fr + (1:img_param.t_len) - ceil(img_param.t_len/2);
-
-        % Beamform RF data at selected frames
-        [RF_frames, I_frames, Q_frames] = ...
-            beamform_rf_lin(img_param, PData, Trans, TX, RcvData{1}, frames);
+        for it = 1:4
+            % Load bmode images
+            load(sprintf('../resources/BmodeData/SPW/ct%4.2f_%d.mat', ...
+                c_t, it), 'RcvData', 'img_x', 'img_z')
     
-        % Save beamformed frame
-        save(sprintf('../resources/TrainData/%s/snr%d/ct%4.2f.mat', ...
-        save_dir, img_param.snr, c_t), ...
-        'fr', 'c_t', 'RF_frames', 'I_frames', 'Q_frames')
-
-        fprintf('%ddB | c_t = %4.2f | t = %3.0f\n', img_param.snr, c_t, toc());
-
-        % Show center B-mode frame
-        if graf
-            figure(1)
-            Mag_frame = I_frames(:, :, floor(end/2)).^2 + ...
-                        Q_frames(:, :, floor(end/2)).^2;
-            imagesc(img_x, img_z, Mag_frame)
-            colorbar
+            % Select center frame
+            fr = 20;
+            frames = fr + (1:est_p.t_len) - ceil(est_p.t_len/2);
+    
+            % Beamform RF data at selected frames
+            [RF_frames, I_frames, Q_frames] = beamform_rf_lin(...
+                img_p, PData, Trans, TX, Receive, RcvData{1}, frames);
+        
+            % Save beamformed frame
+            save(sprintf('%s/snr%d/ct%4.2f_%d.mat', ...
+                save_dir, snr, c_t, it), ...
+                'fr', 'c_t', 'RF_frames', 'I_frames', 'Q_frames')
+    
+            fprintf('%ddB | c_t = %4.2f | it = %d | t = %3.0f\n', ...
+                img_p.snr, c_t, it, toc());
+    
+            % Show center B-mode frame
+            if graf
+                figure(1)
+                Mag_frame = I_frames(:, :, floor(end/2)).^2 + ...
+                            Q_frames(:, :, floor(end/2)).^2;
+                imagesc(Mag_frame)
+                colorbar
+            end
         end
     end
 end

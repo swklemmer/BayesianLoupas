@@ -25,9 +25,12 @@ for z = 1:size(u_sol, 1)
         win_x = max(1, floor(x-vcn_x/2)) : min(max_x, floor(x+vcn_x/2));
 
         % Accumulate L-norm of difference
-        p_u(z, x) = mean(...
-        (sqrt((u_sol(win_z, win_x) - u_sol(z, x)).^2 + 1e-10)).^p, 'all');
-%         p_u(z, x) = mean((u_sol(win_z, win_x) - u_sol(z, x)).^2, 'all');
+        if (p == 1) || (p == 1.05)
+            p_u(z, x) = mean(...
+            (sqrt((u_sol(win_z, win_x) - u_sol(z, x)).^2 + 1e-10)).^1.05, 'all');
+        elseif (p == 2)
+            p_u(z, x) = mean((u_sol(win_z, win_x) - u_sol(z, x)).^2, 'all');
+        end
     end
 end
 

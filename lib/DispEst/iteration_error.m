@@ -10,7 +10,7 @@ switch state
     case 'init'
         % Begin timer
         tic();
-        max_iter = evalin('base', 'opt_param.MaxIterations');
+        max_iter = evalin('base', 'opt_p.MaxIterations');
         elapsed_t = zeros(max_iter, 1);
     
         % Begin iteration count

@@ -1,17 +1,21 @@
-function [RF_comp, IData, QData] = beamform_rf_lin(...
-                               param, PData, Trans, TX, RcvData, varargin)
+function [RF_comp, IData, QData] = beamform_rf_lin( ...
+    img_p, PData, Trans, TX, Receive, RcvData, varargin)
 %BEAMFORM_RF Processes the RF acquisitions stored in a single RcvBuffer
 % using linear DAS at different steering angles.
+% NOTE: RF data in RcvBuffer is sampled at 4 samples per wavelength by
+% default.
 
 % Normalize RF data
 RcvData = double(RcvData) ./ double(max(RcvData, [], 'all'));
 
 % Retrieve process parameters
-n_ang = param.n_ang;                                % steering angles
-fr_in = param.fr_n;                                 % input frame number
+n_ang = img_p.n_ang;                                % steering angles
+fr_in = img_p.fr_n;                                 % input frame number
 smpls_fr = size(RcvData, 1) / fr_in - 128;          % samples per frame
 x_elem = Trans.ElementPos(:, 1);                    % element pos. [wls]
-sigma_n = rms(RcvData, 'all') * db2mag(-param.snr); % noise st. deviation
+sigma_n = rms(RcvData, 'all') * db2mag(-img_p.snr); % noise st. deviation
+smp_lambda = Receive(1).samplesPerWave; % samples per wvln
+
 
 if isempty(varargin)
     frames = 1:fr_in;
@@ -39,18 +43,18 @@ RF_das = zeros(length(z_dim), length(x_dim), size(RF_acq, 3));
 for t = 1:length(frames)
 
     % Element transmition delay
-    elem_t = TX(2 + mod(frames(t), n_ang)).Delay; % [wvls] OJO CON 2 HARDCODEADO
+    elem_t = TX(1 + mod(frames(t), n_ang)).Delay; % [wvls]
 
     for z = 1:length(z_dim)
         for x = 1:length(x_dim)
 
-            % Element independent arrival time [1 wln = 4 smpls]
-            tau_0 = interp1(x_elem, elem_t, x_dim(x)) * 4;
+            % Element independent arrival time [smpls]
+            tau_0 = interp1(x_elem, elem_t, x_dim(x)) * smp_lambda;
 
             for e = 1:size(RcvData, 2)
 
-                % Element dependent echo time (1 wln = 4 smpls)
-                tau = sqrt(z_dim(z)^2 + (x_dim(x) - x_elem(e))^2) * 4;
+                % Element dependent echo time [smpls]
+                tau = sqrt(z_dim(z)^2 + (x_dim(x) - x_elem(e))^2) * smp_lambda;
 
                 % Interpolate in time
                 tau_int = floor(tau_0 + tau);

@@ -5,16 +5,15 @@ function rf_lines_c = create_rf_line(...
 
 % Retrieve imaging parameters
 f_c = img_param.f_c;
-bw = img_param.bw;
 t_s = img_param.t_s;
 z_max = img_param.z_max;
 N = img_param.N;
-SNR = img_param.SNR;
+SNR = img_param.snr;
 
 % Scat position and intensity
 M_max = ceil(z_max / (f_c * t_s));
 max_u = ceil(abs((N - 1) * u_true / (f_c * t_s))); % [smpls]
-n_scat = ceil(0.4 * (M_max + max_u) * t_s / t_cell); % 15 scat/cell
+n_scat = ceil(15 * (M_max + max_u) * t_s / t_cell); % 15 scat/cell
 scat_pos = 1 + (1-sign(u_true)) * max_u / 2 + rand(n_scat, 1) * (M_max-1);
 scat_int = max(1 + 0.25 * randn(n_scat, 1), 0);
 
@@ -48,13 +47,6 @@ end
 rf_lines = rf_lines / std(rf_lines(:, 1), 1);
 rf_lines_n = rf_lines + 10^(-SNR/20) * randn(M_max + 2 * max_u, N);
 
-% Design hanning windowed band-pass filter
-%n_filter = 3; % n taps
-%taps_bp = fir1(n_filter, 2 * f_c * t_s * [1 - bw / 2, 1 + bw / 2]);
-
-% Apply band-pass filter
-%rf_lines_f = filter(taps_bp, 1, rf_lines_n, [], 1);
-
 % Crop rf_lines
 rf_lines_c = rf_lines_n((1:M_max) + max_u, :);
 
@@ -70,14 +62,14 @@ if size(varargin) > 0
     grid on
     title('\textbf{Scatterers}', 'Interpreter','latex')
 
-%     fig = figure(2);
-%     fig.Position = [300, 600, 300, 200];
-%     plot((0:M_max-1) * t_s, rf_lines_c);
-%     grid on;
-%     xlabel('Time [s]')
-%     xlim([0, (M_max - 1) * t_s])
-%     ylim(sqrt(n_scat) * [-2, 2])
-%     title('RF Lines')
+    fig = figure(2);
+    fig.Position = [300, 600, 300, 200];
+    plot((0:M_max-1) * t_s, rf_lines_c);
+    grid on;
+    xlabel('Time [s]')
+    xlim([0, (M_max - 1) * t_s])
+    ylim(sqrt(n_scat) * [-2, 2])
+    title('RF Lines')
 
     fig = figure(3);
     fig.Position = [300, 600, 300, 200];

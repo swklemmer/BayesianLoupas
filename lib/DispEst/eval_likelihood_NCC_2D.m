@@ -1,4 +1,4 @@
-function p_xu = eval_likelihood_NCC_2D(rf_data, u_sol)
+function p_xu = eval_likelihood_NCC_2D(img_p, rf_data, u_sol)
 %LIKELIHOOD_NCC_3D
 % Evaluate the likelihood function of the RF data given a candidate
 % solution using the "Normalized Cross-Correlation" method.
@@ -14,8 +14,8 @@ for z = 1:size(rf_data, 1)
         % Combine parallel RF lines
         rf_lines = squeeze(sum(rf_data(z, x, :, :, :, :), 5));
         
-        % Transform displacement to sample [4 smpls per wvln]
-        smpl_lag = - u_sol(z, x) * 4;
+        % Transform displacement to sample [f_s / f_c == smpls per wvl]
+        smpl_lag = - u_sol(z, x) * img_p.f_s / img_p.f_c;
 
         % Calculate normalized cross-correlation
         cross_corr = ...

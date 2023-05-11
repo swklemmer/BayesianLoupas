@@ -4,7 +4,7 @@ function alpha = optimal_alpha(img_param, met_param)
 switch(met_param.alg)
     case 'ack'
     switch(met_param.p)
-        case 1.05
+        case 1
             switch(img_param.snr)
                 case 5
                     alpha = 1225;

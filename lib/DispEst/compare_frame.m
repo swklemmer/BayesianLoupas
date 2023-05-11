@@ -1,5 +1,5 @@
 function compare_frame(est_x, est_z, u_0, u_hat, u_frame)
-%COMPARE_ESTIMATES
+%COMPARE_FRAME
 
 z_lim = [min([min(u_0, [], 'all'), ...
     min(u_hat, [], 'all'), ...
